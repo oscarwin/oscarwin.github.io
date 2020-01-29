@@ -3,12 +3,12 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
+title: oscarwin
 subtitle: ''
-description: ''
+description: '只要学不死，就往死里学'
 keywords:
-author: John Doe
-language: en
+author: oscarwin
+language: zh-CN
 timezone: ''
 
 # URL
@@ -93,7 +93,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: landscape
+theme: next
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
@@ -101,3 +101,10 @@ deploy:
   type: git
   repository: git@github.com:oscarwin/oscarwin.github.io.git
   branch: master
+
+## 字数统计配置
+symbols_count_time:
+  symbols: true
+  time: false
+  total_symbols: false
+  total_time: false
