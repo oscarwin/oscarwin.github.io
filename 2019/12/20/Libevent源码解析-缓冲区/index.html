@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Mist',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="在 Libevent 源码解析-事件循环 一文中已经介绍了事件循环的主要逻辑，这篇文章再聊一下 libevent 的另一个核心——输入输出缓冲区。对于每一个通过 accept 连接的套接字，无非对其就是两种操作，一个是向套接字写数据，一个是从套接字读数据，对应就是读事件和写事件。libevent 为每个文件描述符就建立了一个输入缓冲区和一个输出缓冲区，分别用来读数据和写数据。缓冲区的结构被定义 e">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Libevent源码解析-evbuffer">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="在 Libevent 源码解析-事件循环 一文中已经介绍了事件循环的主要逻辑，这篇文章再聊一下 libevent 的另一个核心——输入输出缓冲区。对于每一个通过 accept 连接的套接字，无非对其就是两种操作，一个是向套接字写数据，一个是从套接字读数据，对应就是读事件和写事件。libevent 为每个文件描述符就建立了一个输入缓冲区和一个输出缓冲区，分别用来读数据和写数据。缓冲区的结构被定义 e">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/image/evbuffer.png">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-01-30T01:45:01.132Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="libevent">
+<meta property="article:tag" content="网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/image/evbuffer.png">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Libevent源码解析-evbuffer | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Libevent源码解析-evbuffer
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-30 09:45:01" itemprop="dateModified" datetime="2020-01-30T09:45:01+08:00">2020-01-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在 <a href="">Libevent 源码解析-事件循环</a> 一文中已经介绍了事件循环的主要逻辑，这篇文章再聊一下 libevent 的另一个核心——输入输出缓冲区。对于每一个通过 accept 连接的套接字，无非对其就是两种操作，一个是向套接字写数据，一个是从套接字读数据，对应就是读事件和写事件。libevent 为每个文件描述符就建立了一个输入缓冲区和一个输出缓冲区，分别用来读数据和写数据。缓冲区的结构被定义 evbuffer。然后用另一个结构体来管理这两个缓冲区，这个结构体就是 bufferevent。<a id="more"></a></p>
+<h2 id="bufferevent"><a href="#bufferevent" class="headerlink" title="bufferevent"></a>bufferevent</h2><p>首先看一下 bufferevent 的定义，该结构也定义在 event.h 文件中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">struct bufferevent &#123;</span><br><span class="line">    &#x2F;* bufferevent 关联的 event_base *&#x2F;</span><br><span class="line">	struct event_base *ev_base;</span><br><span class="line">    &#x2F;* 一个bufferevent里同时维护相关于这个buffer的读事件和写事件 *&#x2F;</span><br><span class="line">    &#x2F;* 读事件 *&#x2F;</span><br><span class="line">	struct event ev_read;</span><br><span class="line">    &#x2F;* 写事件 *&#x2F;</span><br><span class="line">	struct event ev_write;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 维护两个buffer，读和写 *&#x2F;</span><br><span class="line">	struct evbuffer *input;</span><br><span class="line">	struct evbuffer *output;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 读和写的水位 *&#x2F;</span><br><span class="line">	struct event_watermark wm_read;</span><br><span class="line">	struct event_watermark wm_write;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 读和写已经错误处理的callback函数 *&#x2F;</span><br><span class="line">	evbuffercb readcb;</span><br><span class="line">	evbuffercb writecb;</span><br><span class="line">	everrorcb errorcb;</span><br><span class="line">	void *cbarg;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 读写阻塞的超时时间 *&#x2F;</span><br><span class="line">	int timeout_read;	&#x2F;* in seconds *&#x2F;</span><br><span class="line">	int timeout_write;	&#x2F;* in seconds *&#x2F;</span><br><span class="line"></span><br><span class="line">	short enabled;	&#x2F;* events that are currently enabled *&#x2F;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>bufferevent 里维护了一个读事件 ev_read 和一个写事件 ev_write，一个读缓冲区 input 和一个写缓冲区 output。读事件被激活后会调用 bufferevent_readcb 函数，从套接字中读数据然后写到 input 中，写事件被激活后会调用 bufferevent_writecb 函数，从缓冲区中取数据写到套接字中。</p>
+<p>wm_read 和 wm_write 是为读缓冲区和写缓冲区设定的水位值，水位值有一个高水位和一个低水位。这个作用后面具体说明。</p>
+<p>readcb，writecb 和 errorcb 分别是用户注册的读回调、写回调和错误回调函数。</p>
+<p>timeout_read 和 timeout_write 就是读写的超时时间，可以不设定。</p>
+<p>enabled 用来控制这个 bufferevent 是否处于可用状态。</p>
+<p>与 bufferevent 相关的函数主要有 bufferevent_new，bufferevent_setcb，bufferevent_setwatermark，bufferevent_readcb，bufferevent_writecb。</p>
+<p>bufferevent_new 用来创建 bufferevent 对象，代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">struct bufferevent *</span><br><span class="line">bufferevent_new(int fd, evbuffercb readcb, evbuffercb writecb,</span><br><span class="line">    everrorcb errorcb, void *cbarg)</span><br><span class="line">&#123;</span><br><span class="line">	struct bufferevent *bufev;</span><br><span class="line"></span><br><span class="line">	if ((bufev &#x3D; calloc(1, sizeof(struct bufferevent))) &#x3D;&#x3D; NULL)</span><br><span class="line">		return (NULL);</span><br><span class="line"></span><br><span class="line">    &#x2F;* 分配输入缓存区 *&#x2F;</span><br><span class="line">	if ((bufev-&gt;input &#x3D; evbuffer_new()) &#x3D;&#x3D; NULL) &#123;</span><br><span class="line">		free(bufev);</span><br><span class="line">		return (NULL);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 分配输出缓存区 *&#x2F;</span><br><span class="line">	if ((bufev-&gt;output &#x3D; evbuffer_new()) &#x3D;&#x3D; NULL) &#123;</span><br><span class="line">		evbuffer_free(bufev-&gt;input);</span><br><span class="line">		free(bufev);</span><br><span class="line">		return (NULL);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;* 为这个 evbuffer 初始化一个读事件和一个写事件 </span><br><span class="line">    ** 读事件绑定到 evbuffer 的 ev_read 成员上，</span><br><span class="line">    ** 写事件绑定到 evbuffer 的 ev_write 成员上</span><br><span class="line">    ** 读事件的回调函数为 bufferevent_writecb, 写事件的回调函数为 bufferevent_readcb *&#x2F;</span><br><span class="line">	event_set(&amp;bufev-&gt;ev_read, fd, EV_READ, bufferevent_readcb, bufev);</span><br><span class="line">	event_set(&amp;bufev-&gt;ev_write, fd, EV_WRITE, bufferevent_writecb, bufev);</span><br><span class="line"></span><br><span class="line">    &#x2F;* 为 bufferevent 设定 callback 函数 *&#x2F;</span><br><span class="line">	bufferevent_setcb(bufev, readcb, writecb, errorcb, cbarg);</span><br><span class="line"></span><br><span class="line">	&#x2F;*</span><br><span class="line">	 * Set to EV_WRITE so that using bufferevent_write is going to</span><br><span class="line">	 * trigger a callback.  Reading needs to be explicitly enabled</span><br><span class="line">	 * because otherwise no data will be available.</span><br><span class="line">	 *&#x2F;</span><br><span class="line">	bufev-&gt;enabled &#x3D; EV_WRITE;</span><br><span class="line"></span><br><span class="line">	return (bufev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在 bufferevent_new 函数中创建了输入缓冲区和输出缓冲区，并创建了读事件和写事件，读事件和写事件的回调函数分别是 bufferevent_readcb 和 bufferevent_writecb。我们再看看这两个回调函数是怎么工作的？不过在此之前还是先看看缓冲区 evbuffer 的结构。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">struct evbuffer &#123;</span><br><span class="line">    &#x2F;&#x2F; 缓存区指针</span><br><span class="line">	u_char *buffer;</span><br><span class="line">    &#x2F;&#x2F; 永远指向 buffer 的最初的起始位置</span><br><span class="line">	u_char *orig_buffer;</span><br><span class="line">    &#x2F;&#x2F; 数据相对于buffer起始位置的偏移，misalign + off &#x3D; totallen</span><br><span class="line">	size_t misalign;</span><br><span class="line">    &#x2F;&#x2F; buffer 的总长度</span><br><span class="line">	size_t totallen;</span><br><span class="line">    &#x2F;&#x2F; buffer 中存在数据的大小</span><br><span class="line">	size_t off;</span><br><span class="line">    &#x2F;&#x2F; callback 函数</span><br><span class="line">	void (*cb)(struct evbuffer *, size_t, size_t, void *);</span><br><span class="line">	void *cbarg;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>evbuffer 中，buffer 指向数据再 buffer 中的位置，orig_buffer 则永远指向 buffer 的起始位置，misalign 是 buffer 与 orig_buffer 之间的距离，off 是数据的长度，totallen 是整个 buffer 的长度。用一张图来表示的话就是下面这个样子。</p>
+<p><img src="./image/evbuffer.png" alt="evbuffer"></p>
+<p>当读事件被激活后，就会调用 bufferevent_readcb 函数进行处理，该函数先判断读缓冲区是否已经达到高水位，如果已经达到高水位就将读事件删除，同时给 evbuffer 设定一个 callback 函数，当调用 evbuffer_read 函数时，如果 buffer 里的空间发生变化就会调用该函数判断是否要将读事件重新加入到事件循环中。然后调用 evbuffer_read 函数将数据从套接字中读入到 input 缓冲区中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line">static void</span><br><span class="line">bufferevent_readcb(int fd, short event, void *arg)</span><br><span class="line">&#123;</span><br><span class="line">	struct bufferevent *bufev &#x3D; arg;</span><br><span class="line">	int res &#x3D; 0;</span><br><span class="line">	short what &#x3D; EVBUFFER_READ;</span><br><span class="line">	size_t len;</span><br><span class="line">	int howmuch &#x3D; -1;</span><br><span class="line"></span><br><span class="line">	if (event &#x3D;&#x3D; EV_TIMEOUT) &#123;</span><br><span class="line">		what |&#x3D; EVBUFFER_TIMEOUT;</span><br><span class="line">		goto error;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	&#x2F;*</span><br><span class="line">	 * If we have a high watermark configured then we don&#39;t want to</span><br><span class="line">	 * read more data than would make us reach the watermark.</span><br><span class="line">	 *&#x2F;</span><br><span class="line">    &#x2F;* 如果设置了高水位 *&#x2F;</span><br><span class="line">	if (bufev-&gt;wm_read.high !&#x3D; 0) &#123;</span><br><span class="line">        &#x2F;* 计算当前偏移量离高水位的距离 *&#x2F;</span><br><span class="line">		howmuch &#x3D; bufev-&gt;wm_read.high - EVBUFFER_LENGTH(bufev-&gt;input);</span><br><span class="line">		&#x2F;* we might have lowered the watermark, stop reading *&#x2F;</span><br><span class="line">        &#x2F;* 已经达到了高水位，为了降低水位，*&#x2F;</span><br><span class="line">		if (howmuch &lt;&#x3D; 0) &#123;</span><br><span class="line">            &#x2F;* 获取输入缓冲区 *&#x2F;</span><br><span class="line">			struct evbuffer *buf &#x3D; bufev-&gt;input;</span><br><span class="line">            &#x2F;* 删除读事件 *&#x2F;</span><br><span class="line">			event_del(&amp;bufev-&gt;ev_read);</span><br><span class="line">			&#x2F;* 给evbuffer设定callback函数bufferevent_read_pressure_cb，当evbuffer的off发生变化时都会调用该函数 *&#x2F;</span><br><span class="line">			evbuffer_setcb(buf,</span><br><span class="line">			    bufferevent_read_pressure_cb, bufev);</span><br><span class="line">			return;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	&#x2F;* evbuffer 从套接字中读取数据，由于采用的是水平触发，所以不用一次性全部读完</span><br><span class="line">	** evbuffer 采用的是读最多多少个字节，没有读完的数据还会继续触发 *&#x2F;</span><br><span class="line">	res &#x3D; evbuffer_read(bufev-&gt;input, fd, howmuch);</span><br><span class="line">	if (res &#x3D;&#x3D; -1) &#123;</span><br><span class="line">		&#x2F;&#x2F; 没有数据可读或者信号中断，跳转到reschedule，将读事件重新加入到事件循环中</span><br><span class="line">		if (errno &#x3D;&#x3D; EAGAIN || errno &#x3D;&#x3D; EINTR)</span><br><span class="line">			goto reschedule;</span><br><span class="line">		&#x2F;* error case *&#x2F;</span><br><span class="line">		&#x2F;&#x2F; 否则就是其他错误，调用错误处理函数</span><br><span class="line">		what |&#x3D; EVBUFFER_ERROR;</span><br><span class="line">	&#125; else if (res &#x3D;&#x3D; 0) &#123;</span><br><span class="line">		&#x2F;* eof case *&#x2F;</span><br><span class="line">		what |&#x3D; EVBUFFER_EOF;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if (res &lt;&#x3D; 0)</span><br><span class="line">		goto error;</span><br><span class="line"></span><br><span class="line">	&#x2F;* 将读事件加入到事件循环中，如果将事件指定为persist，就不用重复加了 *&#x2F;</span><br><span class="line">	bufferevent_add(&amp;bufev-&gt;ev_read, bufev-&gt;timeout_read);</span><br><span class="line"></span><br><span class="line">	&#x2F;* See if this callbacks meets the water marks *&#x2F;</span><br><span class="line">	len &#x3D; EVBUFFER_LENGTH(bufev-&gt;input);</span><br><span class="line">	&#x2F;* 如果低水位不为0，且当前数据长度没有达到低水位，那么就不调用用户注册的处理函数 *&#x2F;</span><br><span class="line">	if (bufev-&gt;wm_read.low !&#x3D; 0 &amp;&amp; len &lt; bufev-&gt;wm_read.low)</span><br><span class="line">		return;</span><br><span class="line">	&#x2F;* 高水位不为0，且这一次读操作后导致数据超过了高水位，则从事件循环中删除读操作 *&#x2F;</span><br><span class="line">	if (bufev-&gt;wm_read.high !&#x3D; 0 &amp;&amp; len &gt;&#x3D; bufev-&gt;wm_read.high) &#123;</span><br><span class="line">		struct evbuffer *buf &#x3D; bufev-&gt;input;</span><br><span class="line">		event_del(&amp;bufev-&gt;ev_read);</span><br><span class="line"></span><br><span class="line">		&#x2F;* Now schedule a callback for us when the buffer changes *&#x2F;</span><br><span class="line">		evbuffer_setcb(buf, bufferevent_read_pressure_cb, bufev);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	&#x2F;* Invoke the user callback - must always be called last *&#x2F;</span><br><span class="line">	&#x2F;* 调用用户注册的读回调函数 *&#x2F;</span><br><span class="line">	if (bufev-&gt;readcb !&#x3D; NULL)</span><br><span class="line">		(*bufev-&gt;readcb)(bufev, bufev-&gt;cbarg);</span><br><span class="line">	return;</span><br><span class="line"></span><br><span class="line"> reschedule:</span><br><span class="line">	bufferevent_add(&amp;bufev-&gt;ev_read, bufev-&gt;timeout_read);</span><br><span class="line">	return;</span><br><span class="line"></span><br><span class="line"> error:</span><br><span class="line">	(*bufev-&gt;errorcb)(bufev, what, bufev-&gt;cbarg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/libevent/" rel="tag"><i class="fa fa-tag"></i> libevent</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> 网络编程</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/Linux%E7%94%A8%E6%88%B7%E7%A9%BA%E9%97%B4%E5%92%8C%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" rel="prev" title="Linux用户空间的内存管理">
+      <i class="fa fa-chevron-left"></i> Linux用户空间的内存管理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/" rel="next" title="Libevent源码解析-事件循环">
+      Libevent源码解析-事件循环 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#bufferevent"><span class="nav-number">1.</span> <span class="nav-text">bufferevent</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

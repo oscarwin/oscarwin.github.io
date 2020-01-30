@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Mist',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本文作为自己学习网络编程的总结笔记。打算分析一下主流服务器模式的优缺点，及适用场景，每种模型实现一个回射服务器。客户端用同一个版本，服务端针对每种模型编写对应的回射服务器。 本文所有代码放在：https:&#x2F;&#x2F;github.com&#x2F;oscarwin&#x2F;multi-echo-server">
+<meta property="og:type" content="article">
+<meta property="og:title" content="典型服务器模式原理分析与实践">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="本文作为自己学习网络编程的总结笔记。打算分析一下主流服务器模式的优缺点，及适用场景，每种模型实现一个回射服务器。客户端用同一个版本，服务端针对每种模型编写对应的回射服务器。 本文所有代码放在：https:&#x2F;&#x2F;github.com&#x2F;oscarwin&#x2F;multi-echo-server">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/22/169a5b46d0e97ca7?w=952&h=794&f=png&s=52858">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/22/169a5c3abf4f217c?w=505&h=475&f=png&s=72365">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/22/169a5fcf5c9b4717?w=1411&h=1396&f=png&s=187430">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/24/169afc488d048efe?w=497&h=395&f=png&s=59486">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/25/169b49230e159f85?w=1411&h=1295&f=png&s=191476">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/27/169bf8420a85039f?w=1014&h=375&f=png&s=36778">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-01-30T01:42:46.766Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/3/22/169a5b46d0e97ca7?w=952&h=794&f=png&s=52858">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>典型服务器模式原理分析与实践 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          典型服务器模式原理分析与实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-30 09:42:46" itemprop="dateModified" datetime="2020-01-30T09:42:46+08:00">2020-01-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.2k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文作为自己学习网络编程的总结笔记。打算分析一下主流服务器模式的优缺点，及适用场景，每种模型实现一个回射服务器。客户端用同一个版本，服务端针对每种模型编写对应的回射服务器。</p>
+<p>本文所有代码放在：<a href="https://user-gold-cdn.xitu.io/2019/3/22/169a5f43ccce37a7" target="_blank" rel="noopener">https://github.com/oscarwin/multi-echo-server</a></p>
+<a id="more"></a>
+
+<h2 id="单进程迭代服务器"><a href="#单进程迭代服务器" class="headerlink" title="单进程迭代服务器"></a>单进程迭代服务器</h2><p>单进程迭代服务器是我接触网络编程编写的第一个服务器模型，虽然代码只有几行，但是每一个套接字编程的函数都涉及到大量的知识，这里我并不打算介绍每个套接字函数的功能，只给出一个套接字编程的基础流程图。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/22/169a5b46d0e97ca7?w=952&h=794&f=png&s=52858" alt=""></p>
+<p>有几点需要解释的是：</p>
+<ul>
+<li><p>服务器调用listen函数以后，客户端与服务端的3次握手是由内核自己完成的，不需要应用程序的干预。内核为所有的连接维护两个个队列，队列的大小之和由listen函数的backlog参数决定。服务端收到客户算的SYN请求后，会回复一个SYN+ACK给客户端，并往未完成队列中插入一项。所以未完成队列中的连接都是SYN_RCVD状态的。当服务器收到客户端的ACK应答后，就将该连接从未完成队列转移到已完成队列。</p>
+</li>
+<li><p>当未完成队列和已完成队列满了后，服务器就会直接拒绝连接。常见的SYN洪水攻击，就是通过大量的SYN请求，占满了该队列，导致服务器拒绝其他正常请求达到攻击的目的。</p>
+</li>
+<li><p>accept函数会一直阻塞，直到已完成队列不为空，然后从已完成队列中取出一个完成连接的套接字。</p>
+</li>
+</ul>
+<h2 id="多进程并发服务器"><a href="#多进程并发服务器" class="headerlink" title="多进程并发服务器"></a>多进程并发服务器</h2><p>单进程服务器只能同时处理一个连接。新建立的连接会一直呆在已完成队列里，得不到处理。因此，自然想到通过多进程来实现同时处理多个连接。为每一个连接产生一个进程去处理，称为PPC模式，即process per connection。其流程图如下(图片来自网络，侵删)：</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/22/169a5c3abf4f217c?w=505&h=475&f=png&s=72365" alt=""></p>
+<p>这种模式下有几点需要注意：</p>
+<ul>
+<li>统一由父进程来accept连接，然后fork子进程处理读写</li>
+<li>父进程fork以后，立即关闭了连接套接字，而子进程则立即关闭了监听套接字。因为父进程只处理连接，子进程只处理读写。linux在fork了以后，子进程会继承父进程的文件描述符，父进程关闭连接套接字后，文件描述符的计数会减一，在子进程里并没有关闭，当子进程退出关闭连接套接字后，该文件描述符才被关闭</li>
+</ul>
+<p>这种模式存在的问题：</p>
+<ul>
+<li>fork开销大。进程fork的开销太大，在fork时需要为子进程开辟新的进程空间，子进程还要从父进程那里继承许多的资源。尽管linux采用了写时复制技术，总的来看，开销还是很大</li>
+<li>只能支持较少的连接。进程是操作系统重要的资源，每个进程都要分配独立的地址空间。在普遍的服务器上，该模式只能支持几百的连接。</li>
+<li>进程间通信复杂。虽然linux有丰富的进程间通信方法，但是这些方法使用起来都有些复杂。</li>
+</ul>
+<p>核心代码段如下，完整代码在ppc_server目录。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">&#123;</span><br><span class="line">    clilen = <span class="keyword">sizeof</span>(stCliAddr);</span><br><span class="line">    <span class="keyword">if</span> ((iConnectFd = accept(iListenFd, (struct sockaddr*)&amp;stCliAddr, &amp;clilen)) &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        perror(<span class="string">"accept error"</span>);</span><br><span class="line">        <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 子进程</span></span><br><span class="line">    <span class="keyword">if</span> ((childPid = fork()) == <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">close</span>(iListenFd);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 客户端主动关闭，发送FIN后，read返回0，结束循环</span></span><br><span class="line">        <span class="keyword">while</span>((n = <span class="built_in">read</span>(iConnectFd, buf, BUFSIZE)) &gt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">"pid: %d recv: %s\n"</span>, getpid(), buf);</span><br><span class="line">            fflush(<span class="built_in">stdout</span>);</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">write</span>(iConnectFd, buf, n) &lt; <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                perror(<span class="string">"write error"</span>);</span><br><span class="line">                <span class="built_in">exit</span>(EXIT_FAILURE);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"child exit, pid: %d\n"</span>, getpid());</span><br><span class="line">        fflush(<span class="built_in">stdout</span>);</span><br><span class="line">        <span class="built_in">exit</span>(EXIT_SUCCESS);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 父进程</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">close</span>(iConnectFd);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="预先派生子进程服务器"><a href="#预先派生子进程服务器" class="headerlink" title="预先派生子进程服务器"></a>预先派生子进程服务器</h2><p>既然fork进程时的开销比较大，因此很自然的一种优化方式是，在服务器启动的时候就预先派生子进程，即prefork。每个子进程自己进行accept，大概的流程图如下(图片来自网络，侵删)：</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/22/169a5fcf5c9b4717?w=1411&h=1396&f=png&s=187430" alt=""></p>
+<p>相比于pcc模式，prefork在建立连接时的开销小了很多，但是另外两个问题——连接数有限和进程间通信复杂的问题还是存在。除此之外，prefork模式还引入了新的问题，当有一个新的连接到来时，虽然只有一个进程能够accept成功，但是所有的进程都被唤醒了，这个现象被称为惊群。惊群导致不必要的上下文切换和资源的调度，应该尽量避免。好在linux2.6版本以后，已经解决了惊群的问题。对于惊群的问题，也可以在应用程序中解决，在accept之前加锁，accept以后释放锁，这样就可以保证同一时间只有一个进程阻塞accept，从而避免惊群问题。进程间加锁的方式有很多，比如文件锁，信号量，互斥量等。</p>
+<p>无锁版本的代码在prefork_server目录。加锁版本的代码在prefork_lock_server目录，使用的是进程间共享的线程锁。</p>
+<h2 id="多线程并发服务器"><a href="#多线程并发服务器" class="headerlink" title="多线程并发服务器"></a>多线程并发服务器</h2><p>线程是一种轻量级的进程(linux实现上派生进程和线程都是调用do_fork函数来实现)，线程共享同一个进程的地址空间，因此创建线程时不需要像fork那样，拷贝父进程的资源，维护独立的地址空间，因此相比进程而言，多线程模型开销要小很多。多线程并发服务器模型与多进程并发服务器模型类似。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/24/169afc488d048efe?w=497&h=395&f=png&s=59486" alt=""></p>
+<p>多线程并发服务器模型，与多进程并发服务器模型相比，开销小了很多。但是同样存在连接数很有限这个限制。除此之外，多线程程序还引入了新的问题</p>
+<ul>
+<li>多线程程序不如多进程程序稳定，一个线程崩溃可能导致整个进程崩溃，最终导致服务完全不可用。而多进程程序则不存在这样的问题</li>
+<li>多进程程序共享了地址空间，省去了多进程程序之间复杂的通信方法。但是却需要对共享资源同时访问时进行加锁保护</li>
+<li>创建线程的开销虽然比创建进程的开销小，但是整体来说还是有一些开销的。</li>
+</ul>
+<h2 id="预先派生线程服务器"><a href="#预先派生线程服务器" class="headerlink" title="预先派生线程服务器"></a>预先派生线程服务器</h2><p>和预先派生子进程相似，可以通过预先派生线程来消除创建线程的开销。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/25/169b49230e159f85?w=1411&h=1295&f=png&s=191476" alt=""></p>
+<p>预先派生线程的代码在pthread_server目录。</p>
+<h2 id="reactor模式"><a href="#reactor模式" class="headerlink" title="reactor模式"></a>reactor模式</h2><p>前面提及的几种模式都没能解决的一个问题是——连接数有限。而IO多路复用就是用来解决海量连接数问题的，也就是所谓的C10K问题。</p>
+<p>IO多路复用有三种实现方案，分别是select，poll和epoll，关于三者之间的区别就不在赘述，网络上已经有很多文章讲这个的了，比如这篇文章 <a href="https://segmentfault.com/a/1190000003063859#articleHeader15" target="_blank" rel="noopener">Linux IO模式及 select、poll、epoll详解</a>。</p>
+<p>epoll因为其可以打开的文件描述符不像select那样受系统的限制，也不像poll那样需要在内核态和用户态之间拷贝event，因此性能最高，被广泛使用。</p>
+<p>epoll有两种工作模式，一种是LT(level triggered)模式，一种是ET(edge triggered)模式。LT模式下通知可读，加入来了4k的数据，但是只读了2k，那么再次阻塞在epoll上时，还会再次通知。而ET模式下，如果只读了2k，再次阻塞在epoll上时，就不会通知。因此，ET模式下一次读就要把数据全部读完。因此，只能采用非阻塞IO，在while循环中读取这个IO，read或write返回EAGAIN。如果采用了非阻塞IO，read或write会一直阻塞，导致没有阻塞在epoll_wait上，IO多路复用就失效了。<strong>非阻塞IO配合IO多路复用就是reactor模式</strong>。reactor是核反应堆的意思，光是听这名字我就觉得牛不不要不要的了。</p>
+<p>epoll编码的核心代码，我直接从man命令里的说明里拷贝过来了，我们的实现在目录reactor_server里。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">#define MAX_EVENTS 10</span><br><span class="line">struct epoll_event ev, events[MAX_EVENTS];</span><br><span class="line">int listen_sock, conn_sock, nfds, epollfd;</span><br><span class="line"></span><br><span class="line">&#x2F;* Set up listening socket, &#39;listen_sock&#39; (socket(),bind(), listen()) *&#x2F;</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; 创建epoll句柄</span><br><span class="line">epollfd &#x3D; epoll_create(10);</span><br><span class="line">if (epollfd &#x3D;&#x3D; -1) &#123;</span><br><span class="line">   perror(&quot;epoll_create&quot;);</span><br><span class="line">   exit(EXIT_FAILURE);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; 将监听套接字注册到epoll上</span><br><span class="line">ev.events &#x3D; EPOLLIN;</span><br><span class="line">ev.data.fd &#x3D; listen_sock;</span><br><span class="line">if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &amp;ev) &#x3D;&#x3D; -1) &#123;</span><br><span class="line">   perror(&quot;epoll_ctl: listen_sock&quot;);</span><br><span class="line">   exit(EXIT_FAILURE);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">for (;;) &#123;</span><br><span class="line">    &#x2F;&#x2F; 阻塞在epoll_wait</span><br><span class="line">   nfds &#x3D; epoll_wait(epollfd, events, MAX_EVENTS, -1);</span><br><span class="line">   if (nfds &#x3D;&#x3D; -1) &#123;</span><br><span class="line">       perror(&quot;epoll_pwait&quot;);</span><br><span class="line">       exit(EXIT_FAILURE);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   for (n &#x3D; 0; n &lt; nfds; ++n) &#123;</span><br><span class="line">       if (events[n].data.fd &#x3D;&#x3D; listen_sock) &#123;</span><br><span class="line">           conn_sock &#x3D; accept(listen_sock, (struct sockaddr *) &amp;local, &amp;addrlen);</span><br><span class="line">           if (conn_sock &#x3D;&#x3D; -1) &#123;</span><br><span class="line">               perror(&quot;accept&quot;);</span><br><span class="line">               exit(EXIT_FAILURE);</span><br><span class="line">           &#125;</span><br><span class="line">           </span><br><span class="line">           &#x2F;&#x2F; 将连接套接字设定为非阻塞、边缘触发，然后注册到epoll上</span><br><span class="line">           setnonblocking(conn_sock);</span><br><span class="line">           ev.events &#x3D; EPOLLIN | EPOLLET;</span><br><span class="line">           ev.data.fd &#x3D; conn_sock;</span><br><span class="line">           if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock,</span><br><span class="line">                       &amp;ev) &#x3D;&#x3D; -1) &#123;</span><br><span class="line">               perror(&quot;epoll_ctl: conn_sock&quot;);</span><br><span class="line">               exit(EXIT_FAILURE);</span><br><span class="line">           &#125;</span><br><span class="line">       &#125; else &#123;</span><br><span class="line">           do_use_fd(events[n].data.fd);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们再分析一下epoll的原理。</p>
+<p>epoll_create创建了一个文件描述符，这个文件描述符实际是指向的一个红黑树。当用epoll_ctl函数去注册文件描述符时，就是往红黑树中插入一个节点，该节点中存储了该文件描述符的信息。当某个文件描述符准备好了，回去调用一个回调函数ep_poll_callback将这个文件描述符准备好的信息放到rdlist里，epoll_wait则阻塞于rdlist直到其中有数据。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/27/169bf8420a85039f?w=1014&h=375&f=png&s=36778" alt=""></p>
+<h2 id="proactor模式"><a href="#proactor模式" class="headerlink" title="proactor模式"></a>proactor模式</h2><p>proactor模式就是采用异步IO加上IO多路复用的方式。使用异步IO，将读写的任务也交给了内核来做，当数据已经准备好了，用户线程直接就可以用，然后处理业务逻辑就OK了。</p>
+<h2 id="多种模式的服务器该如何选择"><a href="#多种模式的服务器该如何选择" class="headerlink" title="多种模式的服务器该如何选择"></a>多种模式的服务器该如何选择</h2><p>常量连接常量请求，如：管理后台，政府网站，可以使用ppc和tpc模式</p>
+<p>常量连接海量请求，如：中间件，可以使用ppc和tpc模式</p>
+<p>海量连接常量请求，如：门户网站，ppc和tpc不能满足需求，可以使用reactor模式</p>
+<p>海量连接海量请求，如：电商网站，秒杀业务等，ppc和tpc不能满足需求，可以使用reactor模式</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> 网络编程</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/" rel="prev" title="MySQL索引">
+      <i class="fa fa-chevron-left"></i> MySQL索引
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/" rel="next" title="MySQL的事务">
+      MySQL的事务 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#单进程迭代服务器"><span class="nav-number">1.</span> <span class="nav-text">单进程迭代服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多进程并发服务器"><span class="nav-number">2.</span> <span class="nav-text">多进程并发服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#预先派生子进程服务器"><span class="nav-number">3.</span> <span class="nav-text">预先派生子进程服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多线程并发服务器"><span class="nav-number">4.</span> <span class="nav-text">多线程并发服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#预先派生线程服务器"><span class="nav-number">5.</span> <span class="nav-text">预先派生线程服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reactor模式"><span class="nav-number">6.</span> <span class="nav-text">reactor模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#proactor模式"><span class="nav-number">7.</span> <span class="nav-text">proactor模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多种模式的服务器该如何选择"><span class="nav-number">8.</span> <span class="nav-text">多种模式的服务器该如何选择</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Mist',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="MySQL的索引就好比一本书的目录，通过目录我们可以快速定位到感兴趣内容的章节，而通过索引可以快点查询到感兴趣的数据。数据没有了目录，我们只能从前到后一页页的查找，直到找到我们感兴趣的内容，这个过程是相当慢的。同理数据库如果没有了索引，只能一条条地找数据，当数据量非常大时，耗时就会很严重。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL索引">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="MySQL的索引就好比一本书的目录，通过目录我们可以快速定位到感兴趣内容的章节，而通过索引可以快点查询到感兴趣的数据。数据没有了目录，我们只能从前到后一页页的查找，直到找到我们感兴趣的内容，这个过程是相当慢的。同理数据库如果没有了索引，只能一条条地找数据，当数据量非常大时，耗时就会很严重。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/7/4/16bbd02108143dd6?w=1773&h=2738&f=png&s=640969">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/6/7/16b320dfd8d3b911?w=938&h=774&f=png&s=287445">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/7/9/16bd59c5df0d91ad?w=391&h=312&f=png&s=14665">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/7/9/16bd5a11121df275?w=490&h=279&f=png&s=17421">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-01-30T01:46:22.625Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/7/4/16bbd02108143dd6?w=1773&h=2738&f=png&s=640969">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>MySQL索引 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MySQL索引
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-30 09:46:22" itemprop="dateModified" datetime="2020-01-30T09:46:22+08:00">2020-01-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.3k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://user-gold-cdn.xitu.io/2019/7/4/16bbd02108143dd6?w=1773&h=2738&f=png&s=640969" alt=""><br>MySQL的索引就好比一本书的目录，通过目录我们可以快速定位到感兴趣内容的章节，而通过索引可以快点查询到感兴趣的数据。数据没有了目录，我们只能从前到后一页页的查找，直到找到我们感兴趣的内容，这个过程是相当慢的。同理数据库如果没有了索引，只能一条条地找数据，当数据量非常大时，耗时就会很严重。<a id="more"></a></p>
+<h1 id="索引模型"><a href="#索引模型" class="headerlink" title="索引模型"></a>索引模型</h1><p>索引的模型主要有三种：键-值对、有序数组和搜索树</p>
+<p><strong>键-值对</strong></p>
+<p>键-值对的模型就是使用哈希表来存储数据，当发生哈希碰撞时，可以通过一个链表来解决冲突，不过链表太长的话也会影响查询效率。</p>
+<p>键值对的特点是查询数据非常快，但是只能进行等值查询，不支持范围查询。键-值对的方式在NoSQL中应用较多，比如redis。</p>
+<p><strong>有序数组</strong></p>
+<p>有序数组的模型是将数据存储在一个数组模型中，然后要保持这个数组是有序的，这个有序可以是按照数据中某个字段的值进行有序排列。</p>
+<p>有序数组查询数据可以直接采用二分法，因此时间复杂度是O(logN)。而且有序数组可以很方便的进行范围查询。有序数组的问题在于，为了维护数组的有序性，在插入时要移动插入位置后面所有的数据，这个代价非常大。因此有序数组适合为静态数据建立索引，静态数据一次建立就完成，不会有再有插入的需求。</p>
+<p><strong>搜索树</strong></p>
+<p>二叉搜索树也是有序的，左节点小于父节点，父节点小于右节点。二叉搜索树的查询复杂度也是o(logN)，更新的复杂度也是o(logN)，当然为了维持o(logN)的复杂度，需要二叉树保持平衡。</p>
+<p>但是当数据量非常大时，二叉搜索树的高度会很高，这增加了搜索的时间。比如对于有一百万个节点的平衡二叉树，树的高度是20，假设磁盘随机读一个数据需要10ms，那么一个简单的查询都需要200ms，这个速度显然是不能被接受的。</p>
+<p>为了减少二叉树的高度，N叉搜索树被发明出来，一个父节点下可以有N个子节点。对于一百万个节点的N叉搜索树，当N为100时，那么树的高度就已经降到3。</p>
+<h1 id="InnoDB索引模型"><a href="#InnoDB索引模型" class="headerlink" title="InnoDB索引模型"></a>InnoDB索引模型</h1><h2 id="聚簇索引与非聚簇索引"><a href="#聚簇索引与非聚簇索引" class="headerlink" title="聚簇索引与非聚簇索引"></a>聚簇索引与非聚簇索引</h2><p>聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。当表有聚簇索引时，它的数据行实际上是放在索引的叶子节点上。相应的如果数据行是单独存放，而索引的叶子节点只保存了数据行指针的存储方式就是非聚簇索引。因为不可能把数据行同时放在两个不同的地方，所以一个表最多只能有一个聚簇索引。</p>
+<p>然后我们比较一下聚簇索引与非聚簇索引的存储特性。直接引用《高性能MySQL》一书中关于聚簇索引与非聚簇索引比较的图片。左边是聚簇索引和主键索引和二级索引，右边是非聚簇索引的主键索引和二级索引。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/6/7/16b320dfd8d3b911?w=938&h=774&f=png&s=287445" alt=""></p>
+<p><strong>聚簇索引与非聚簇索引的特点：</strong></p>
+<ol>
+<li><p>聚簇索引的主键索引，数据行是和索引在一起的；</p>
+</li>
+<li><p>非聚簇索引的主键索引，数据行和索引分开存储，索引中保存数据行的地址；</p>
+</li>
+<li><p>聚簇索引的二级索引中，保存的是主键索引的值。之所以保存主键索引的值，而不是保存数据行的地址，是因为聚簇索引会发生页分裂，页分裂后数据存储的地址就会发生变化。当页地址发生变化后，只需要维护主键索引的数据即可，不需要维护二级索引，减少了索引的维护工作;</p>
+</li>
+<li><p>非聚簇索引的主键索引和二级索引没有什么实质性的区别。</p>
+</li>
+</ol>
+<p><strong>聚簇索引有些优点：</strong></p>
+<ol>
+<li>可以把相关的数据保存在一起。比如一个用户的流水记录，按照用户的ID建立聚簇索引，这样用户所有的数据都会聚集在一起，因此查询时只需要读少数几个磁盘的数据块就可以获取一个用户所有的数据。</li>
+<li>数据访问更快。聚簇索引的数据行与索引在一起，因此在聚簇索引上搜索时，完成索引的搜索就找到了数据，不需要再进行一次磁盘IO。</li>
+<li>使用覆盖索引时可以直接使用页子节点中的主键值，因为二级索引的叶子节点上保存是主键值。</li>
+</ol>
+<p><strong>聚簇索引有些缺点：</strong></p>
+<ol>
+<li>插入的速度严重依赖于插入的顺序。如果按照主键的顺序进行插入，插入可以很快。如果不按照主键的顺序进行插入，则可能产生页分裂。页分裂不仅影响插入的速度，而且原来一个页，现在分成两个页来存储，而两个页又没有都存满，占用了更多的磁盘空间。所以这就是为什么DBA总是建议在使用InnoDB引擎时，使用自增ID做主键；</li>
+<li>更新聚簇索引的代价很高，因为每个被更新的行会被移动到新的位置；</li>
+<li>二级索引需要两次查找，因为二级索引中存放的是主键的值，需要再进行一次回表操作；</li>
+<li>二级索引中存储主键的值，可能会导致二级索引占用更大的空间；</li>
+</ol>
+<h2 id="InnoDB的索引模型"><a href="#InnoDB的索引模型" class="headerlink" title="InnoDB的索引模型"></a>InnoDB的索引模型</h2><p>InnoDB在MySQL5.5版本以后已经成为MySQL的默认存储引擎，我们来分析一个InnoDB的索引模型。InnoDB采用B+树的索引模型，InnoDB的主键索引是聚簇索引。</p>
+<p>什么是B+树？<br>B+树比B树有什么优点？<br>B+树是如何插入和删除数据的？</p>
+<p>以上问题，请参考这篇博客，写的非常简单易懂：<a href="https://www.cnblogs.com/nullzx/p/8729425.html" target="_blank" rel="noopener">B树和B+树的插入、删除图文详解</a></p>
+<p>InnDB引擎采用B+树作为索引模型，对于m阶的B+树，等值查询时间复杂度为logm(N)，B+树的数据都在叶子节点上。B+树的叶子节点有指向下一个叶子节点的指针，因此范围查询也非常快。</p>
+<p>InnoDB为了维护聚簇索引的有序性，按主键顺序插入不会引起页分裂。随机插入时，容易导致页分裂。因此一般选择自增id做主键。建表语句中常用以下方案<code>id BIGINT UNSIGNED NOT NULL PRIMERY KEY AUTO_INCREMENT</code></p>
+<p>InnoDB存储引擎必须为表指定一个主键，如果没有主键，InnoDB会选择一个唯一的非空索引代替。如果没有这样的索引，InnoDB会隐式定义一个主键来作为聚簇索引。</p>
+<h1 id="MySQL索引的特性"><a href="#MySQL索引的特性" class="headerlink" title="MySQL索引的特性"></a>MySQL索引的特性</h1><h2 id="回表"><a href="#回表" class="headerlink" title="回表"></a>回表</h2><p> 我们已经知道聚簇索引的二级索引中存放的是主键的索引的值，那么通过二级索引查找数据时，首先要通过二级索引索引拿到主键索引的值，然后通过主键值去查询数据。通过主键值再去查询数据的这个过程称为回表。</p>
+<h2 id="最左前缀原则"><a href="#最左前缀原则" class="headerlink" title="最左前缀原则"></a>最左前缀原则</h2><p>每一个查询都维护一个索引时，需要建立很多索引，索引不仅占用磁盘空间，而且维护成本也很大。索引很多时，每插入一条数据，都需要向每个索引中插入一条主键值。为了减少索引的数量，可以建立联合索引，联合索引就是可以使用多个列一起建立一个索引。建立索引时要优先在已经存在的索引上扩展成联合索引，或者在已经存在的联合索引上继续添加字段。因为，索引越多，维护成本就越高，还会导致插入速度变慢等负面效应。</p>
+<p>假设建立一张表，如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`t`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`a`</span> <span class="built_in">varchar</span>(<span class="number">32</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`b`</span> <span class="built_in">varchar</span>(<span class="number">32</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`c`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`a_b`</span> (<span class="string">`a, b`</span>),</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span></span><br></pre></td></tr></table></figure>
+<p>这个表除了在id上建立主键索引外，还在列<code>a</code>和<code>b</code>上建立了一个联合二级索引<code>a_b</code>。当使用where条件<code>where a = &#39;xxx&#39; and b = &#39;yyy&#39;</code>时，可以使用索引<code>a_b</code>，当where条件是<code>where a = &#39;xxx&#39;</code>时也可以使用该索引，但是单where条件是<code>where b = &#39;yyy&#39;</code>时就不能使用该索引了。这就是最左前缀原则。</p>
+<p>对于联合索引和最左前缀原则，还有一点需要注意的是：<strong>模糊查询和范围查询都会导致联合索引上该查询列之后的列失效</strong>。</p>
+<p>举例来说：对于表t中的联合索引a_b如果有一个查询<code>select * from t where a like &#39;test%&#39; and b = &#39;luck&#39;</code>，会导致联合索引只使用a列来命中，b列失效了，因为在列a上已经有了模糊查询。</p>
+<h2 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from t where a like &#39;test%&#39; and b &#x3D; &#39;luck&#39;;</span><br></pre></td></tr></table></figure>
+<p>刚刚已经分析了，这个查询会导致列b部分索引不能命中，因此a进行模糊查询命中后，就要回表查询。</p>
+<p>如果索引上有这样四条数据，那么其是否回表的结果如下所示：</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/7/9/16bd59c5df0d91ad?w=391&h=312&f=png&s=14665" alt=""></p>
+<p>不过在mysql的5.6版本以后做了一个优化，引入了索引下推，在遍历索引的过程中，会对索引中包含的字段优先进行判断，过滤掉不满足条件的数据，减少回表的次数。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/7/9/16bd5a11121df275?w=490&h=279&f=png&s=17421" alt=""></p>
+<h1 id="索引优化"><a href="#索引优化" class="headerlink" title="索引优化"></a>索引优化</h1><h2 id="联合索引应该怎么建"><a href="#联合索引应该怎么建" class="headerlink" title="联合索引应该怎么建"></a>联合索引应该怎么建</h2><p>前面已经介绍了联合索引和最左前缀原则，通过联合索引可以减少索引的数量。那么建立联合索引时，应该遵循什么样的原则呢？</p>
+<ol>
+<li><p>区分度大的优先放在前面。比如一张全球人口的用户表，该表有性别，国籍，年龄等字段。那么一般情况下国籍的区分度就要比性别的区分度更高，比如满足中国人这个条件的要比满足男人这个条件的人要更少。因此建立联合索引时国籍优先考虑放在性别的前面。</p>
+</li>
+<li><p>可以枚举的值优先放在前面。还是刚刚这张用户表，假设我们建立了(国籍，年龄，性别)这样一个联合索引key_a，如果我要查找中国男性用户，那么这个联合索引就没法用了。可是如果我们建立了(性别，国籍，年龄)这样一个联合索引key_b，这种情况下，我们要查找中国18岁的用户，那么这个索引还能用吗？当然可以，我们可以在查询时通过IN条件指定IN(男性，女性)。这样最左前缀原则能够满足。</p>
+</li>
+</ol>
+<p>细心的读者会发现，第一点和第二点可能会发生冲突，那么该如何决策呢？索引的选择没有唯一的标准，很多原则之前都是相互冲突的，需要根据具体的情况进行权衡。比如上面的案例中，如果将性别放在后面，虽然区分度高，但是很多情况下会导致索引直接无法命中，而将性别放在最前面，虽然区分区没有那么大，但是能保证索引命中，性能不会下降很多，所以可以考虑将性别往前放。</p>
+<p>还有一些查询条件，需要进行范围查询或者排序，那么范围查询和排序的字段就要尽量往后放，因为范围查询以后的字段索引是不能命中的。</p>
+<h2 id="要不要用唯一索引"><a href="#要不要用唯一索引" class="headerlink" title="要不要用唯一索引"></a>要不要用唯一索引</h2><p>对于查询而言，普通索引命中第一条记录后还要继续往下找，而唯一索引立即就可以返回了。但是磁盘存储是以分页的形式进行存储，最小的分页是4K，当读到第一条记录时，大概率剩下的数据也在这4K的分页里，这4K的分页已经被加载进了内存。所以两者查询带来的性能影响区别不大。</p>
+<p>对于写而言，普通索引数据插入会先写入change buf里来加速写操作。但是唯一索引为了保证唯一性，不能使用change buf，唯一索引要先查找是否已经存在相同的索引数据，不存在则插入。</p>
+<p>如果业务上能保证唯一，则尽量使用普通索引，如果业务上不能保证唯一则考虑使用唯一索引。</p>
+<h2 id="要不要用UUID做主键"><a href="#要不要用UUID做主键" class="headerlink" title="要不要用UUID做主键"></a>要不要用UUID做主键</h2><p>使用InnoDB引擎时，DBA会建议你使用自增ID做主键，而不要使用随机的UUID做主键，因为非递增的主键会导致频繁的页分裂，从而降低了插入的效率。所以一般情况下，我们会在表中添加一个自增ID字段，用该字段来作表的主键。使用自增ID做主键时，如果需要按照UUID查询用户信息时，查找就需要回表，查找的效率会低一点。</p>
+<p>关于这一点认识，我是这样理解的：</p>
+<ol>
+<li>如果表中只需要一个UUID的唯一索引，那么就可以使用UUID来做主键；</li>
+<li>如果不满足条件1就用自增ID做索引；</li>
+<li>如果不知道怎么选，那么用自增ID做索引好了，这样至少不会有错。</li>
+</ol>
+<h2 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h2><p>覆盖索引就是索引上的数据已经能满足该查询的需要，就不需要进行回表操作，减少IO操作，从而达到优化查询速度的目标。</p>
+<p>在一张用户表上</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="string">`user`</span> (</span><br><span class="line">  <span class="string">`id`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`id_card`</span> <span class="built_in">varchar</span>(<span class="number">32</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`name`</span> <span class="built_in">varchar</span>(<span class="number">32</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`age`</span> <span class="built_in">int</span>(<span class="number">11</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  <span class="string">`ismale`</span> <span class="built_in">tinyint</span>(<span class="number">1</span>) <span class="keyword">DEFAULT</span> <span class="literal">NULL</span>,</span><br><span class="line">  PRIMARY <span class="keyword">KEY</span> (<span class="string">`id`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`id_card`</span> (<span class="string">`id_card`</span>),</span><br><span class="line">  <span class="keyword">KEY</span> <span class="string">`name_age`</span> (<span class="string">`name`</span>,<span class="string">`age`</span>)</span><br><span class="line">) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span></span><br></pre></td></tr></table></figure>
+<p>如果以身份证号id_card建立索引，这时有个高频查询通过身份证号码查询名称，那么这个查询每次都要回表查询。这时，如果将刚刚那个索引修改为id_card和name的联合索引，那么索引上的数据就已经可以满足查询的需求，因此不需要回表查询。</p>
+<h2 id="控制索引长度"><a href="#控制索引长度" class="headerlink" title="控制索引长度"></a>控制索引长度</h2><p>索引的太长首先会占用大量的磁盘空间，其次索引太长会使索引变得臃肿，导致索引查询变慢。通过目录查询书籍指定的章节之所以快，就是因为索引足够轻量，如果索引太长那么这个优势就不明显了。而且索引里的数据和表里的数据本身就是冗余的，如果索引太长，那么磁盘空间浪费的就越多。MySQL对索引的长度也有明确限制的。</p>
+<p>控制索引长度有几个方法：</p>
+<ol>
+<li>字符串使用前缀索引，可以大幅缩短索引的长度；</li>
+<li>联合索引不要建在太多字段上；</li>
+</ol>
+<h2 id="前缀索引"><a href="#前缀索引" class="headerlink" title="前缀索引"></a>前缀索引</h2><p>索引太长会导致索引变的臃肿，前缀索引就是来给索引进行减负的。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="keyword">User</span>(</span><br><span class="line">  <span class="keyword">ID</span> <span class="built_in">bigint</span> <span class="keyword">unsigned</span> primary <span class="keyword">key</span>,</span><br><span class="line">  email <span class="built_in">varchar</span>(<span class="number">64</span>), </span><br><span class="line">  ... </span><br><span class="line">) <span class="keyword">engine</span>=<span class="keyword">innodb</span>;</span><br></pre></td></tr></table></figure>
+
+<p>有这样一张用户表，使用邮箱作为注册名。假设有这样一批用户，<code>abcdii@163.com, abcdrr@163.com, abcdoo@163.com, abcdss@163.com</code>。业务需求里大概率有通过用户名查找用户信息的场景，因此需要在用户名上添加索引。简单的方式直接建立普通索引key(email)，也可以使用前缀索引key(email(4))。</p>
+<p>如果建立普通索引那么索引的长度是10，如果建立前缀索引那么索引的长度的4。假设要查询<a href="mailto:abcdoo@163.com">abcdoo@163.com</a>的数据，对于普通索引首先定位到<a href="mailto:abcdoo@163.com">abcdoo@163.com</a>的行，回表拿到数据，然后沿着索引继续往下找，找到<a href="mailto:abcdss@163.com">abcdss@163.com</a>已经不满足条件，于是结束查找。只进行了一次回表，因此系统判定只查找了1行。</p>
+<p>对于前缀索引则需要查找四次，全部都要回表操作确认是否为要查找的对象，因为索引的长度为4时都能满足条件。考虑如果将前缀索引取5个长度key(email(5))，那么也只需要一次查找就能完成。这说明前缀索引可以保持很好的区分区的条件下，可以减少索引的长度。</p>
+<p>那么该如何选择前缀索引的长度呢？</p>
+<p>首先通过下面这条语句，计算不同列的数量</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT count(distinct email) as C FROM User;</span><br></pre></td></tr></table></figure>
+<p>然后计算不同索引长度下不同列的数量，当不同列的长度和非前缀索引比较接近时，或者随着索引长度的增加不同列的数量不再大量增加时，差不多就是合理的前缀索引长度了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT count(distinct left(email, 4) as C4 FROM User;</span><br><span class="line">SELECT count(distinct left(email, 5) as C5 FROM User;</span><br></pre></td></tr></table></figure>
+
+<p><strong>前缀索引对覆盖索引的影响</strong><br>因为前缀索引字符串不是完整的，因此会导致覆盖索引失效，因此在建立前缀索引时要考虑到这点。</p>
+<p><strong>字符串前面重复度较高时怎么处理</strong></p>
+<p>如果遇到字符串前缀部分重复度比较高，如身份证号码。有两种解决方案，</p>
+<p>一种是将该字符串颠倒过来存储，查询的时候也要反转字符串后再查询</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id_card = <span class="keyword">reverse</span>(<span class="string">'input_id_card'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>二是通过该字符串计算一个HASH值，索引建在HASH值上。但是不同的ID也可能具有相同的hash值，因此查询时需要通过身份证号精确判断。<code>id_card_crc</code>为ID计算crc32后的hash值字段。hash计算后索引就只占用4个字节了。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id_card_crc = <span class="keyword">crc32</span>(<span class="string">'input_id_card'</span>) <span class="keyword">and</span> id_card=<span class="string">'input_id_card'</span></span><br></pre></td></tr></table></figure>
+<p>这两种方法都会导致范围查询失败，这点是需要注意的。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"><i class="fa fa-tag"></i> 数据库</a>
+              <a href="/tags/mysql/" rel="tag"><i class="fa fa-tag"></i> mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="prev" title="zookeeper介绍与环境搭建">
+      <i class="fa fa-chevron-left"></i> zookeeper介绍与环境搭建
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/" rel="next" title="典型服务器模式原理分析与实践">
+      典型服务器模式原理分析与实践 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#索引模型"><span class="nav-number">1.</span> <span class="nav-text">索引模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#InnoDB索引模型"><span class="nav-number">2.</span> <span class="nav-text">InnoDB索引模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#聚簇索引与非聚簇索引"><span class="nav-number">2.1.</span> <span class="nav-text">聚簇索引与非聚簇索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InnoDB的索引模型"><span class="nav-number">2.2.</span> <span class="nav-text">InnoDB的索引模型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MySQL索引的特性"><span class="nav-number">3.</span> <span class="nav-text">MySQL索引的特性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#回表"><span class="nav-number">3.1.</span> <span class="nav-text">回表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#最左前缀原则"><span class="nav-number">3.2.</span> <span class="nav-text">最左前缀原则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#索引下推"><span class="nav-number">3.3.</span> <span class="nav-text">索引下推</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#索引优化"><span class="nav-number">4.</span> <span class="nav-text">索引优化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#联合索引应该怎么建"><span class="nav-number">4.1.</span> <span class="nav-text">联合索引应该怎么建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#要不要用唯一索引"><span class="nav-number">4.2.</span> <span class="nav-text">要不要用唯一索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#要不要用UUID做主键"><span class="nav-number">4.3.</span> <span class="nav-text">要不要用UUID做主键</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#覆盖索引"><span class="nav-number">4.4.</span> <span class="nav-text">覆盖索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#控制索引长度"><span class="nav-number">4.5.</span> <span class="nav-text">控制索引长度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#前缀索引"><span class="nav-number">4.6.</span> <span class="nav-text">前缀索引</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
