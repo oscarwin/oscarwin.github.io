@@ -8,7 +8,7 @@ categories: 技术博文
 comments:  true
 ---
 
-最近阅读了 libevent 的源码，写一篇文章来总结自己学习到知识。使用libevent应该优先选用最新的稳定版本，而阅读源码为了降低难度，我选择了1.4的版本，也就是patches-1.4分支。读这篇文章需要 Unix 网络编程的基础，知道 reactor 模式，如果对此还有疑问可以看我这篇文章[典型服务器模式原理分析与实践](https://github.com/oscarwin/blog/blob/master/典型服务器模式原理分析与实践)
+最近阅读了 libevent 的源码，写一篇文章来总结自己学习到知识。使用libevent应该优先选用最新的稳定版本，而阅读源码为了降低难度，我选择了1.4的版本，也就是patches-1.4分支。读这篇文章需要 Unix 网络编程的基础，知道 reactor 模式，如果对此还有疑问可以看我这篇文章[典型服务器模式原理分析与实践](https://github.com/oscarwin/blog/blob/master/典型服务器模式原理分析与实践)<!-- more -->
 
 ## libevent 的文件结构
 

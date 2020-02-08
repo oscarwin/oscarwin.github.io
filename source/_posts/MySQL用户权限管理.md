@@ -8,7 +8,7 @@ categories: 技术博文
 comments: true
 ---
 
-在MySQL中用户数据放在mysql库的user表里，在该表中保存用用户的用户名，密码和权限信息。
+在MySQL中用户数据放在mysql库的user表里，在该表中保存用用户的用户名，密码和权限信息。<!-- more -->
 
 ## 创建用户
 

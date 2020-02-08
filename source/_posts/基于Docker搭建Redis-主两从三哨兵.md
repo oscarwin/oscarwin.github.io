@@ -12,7 +12,7 @@ comments:  true
 
 这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。
 
-首先分别在这三台主机上安装docker，然后每台主机上启动一个redis容器，运行redis-server服务，其中35.236.172.131作为master，另外两台机器作为slave，最后在三台主机上再分别启动一个redis容器，运行redis-sentinel。为什么还是redis容器呢？因为sentinel实际上还是一个redis-server，只不过是以sentinel模式执行，只能处理sentinel需要的一些命令。
+首先分别在这三台主机上安装docker，然后每台主机上启动一个redis容器，运行redis-server服务，其中35.236.172.131作为master，另外两台机器作为slave，最后在三台主机上再分别启动一个redis容器，运行redis-sentinel。为什么还是redis容器呢？因为sentinel实际上还是一个redis-server，只不过是以sentinel模式执行，只能处理sentinel需要的一些命令。<!-- more -->
 
 ## 安装docker
 

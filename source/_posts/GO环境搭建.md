@@ -3,11 +3,11 @@ title: GO环境搭建
 date: 2019-12-20 10:00:00
 tags:
     - go
-categories:
+categories: 技术博文
 comments:  true
 ---
 
-Go 安装整体来说都是非常简单的，下面分别说明在不同操作系统上的安装步骤
+Go 安装整体来说都是非常简单的，下面分别说明在不同操作系统上的安装步骤<!-- more -->
 
 ### Linux 上安装
 
