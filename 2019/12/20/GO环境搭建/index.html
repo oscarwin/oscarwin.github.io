@@ -230,6 +230,13 @@
             </span>
 
           
+            <span id="/2019/12/20/GO%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="post-meta-item leancloud_visitors" data-flag-title="GO环境搭建" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
             <span class="post-meta-item" title="本文字数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-file-word-o"></i>
@@ -329,12 +336,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/" rel="prev" title="Libevent源码解析-事件循环">
-      <i class="fa fa-chevron-left"></i> Libevent源码解析-事件循环
+    <a href="/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E7%BC%93%E5%86%B2%E5%8C%BA/" rel="prev" title="Libevent源码解析-evbuffer">
+      <i class="fa fa-chevron-left"></i> Libevent源码解析-evbuffer
     </a></div>
       <div class="post-nav-item">
-    <a href="/2019/12/20/Docker%E7%9A%84%E9%95%9C%E5%83%8F%E4%B8%8E%E5%AE%B9%E5%99%A8/" rel="next" title="Docker的镜像与容器">
-      Docker的镜像与容器 <i class="fa fa-chevron-right"></i>
+    <a href="/2019/12/20/Docker%E7%9A%84%E5%AE%89%E8%A3%85/" rel="next" title="Docker 的安装">
+      Docker 的安装 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -474,6 +481,93 @@
 
 
 
+  <script>
+  function leancloudSelector(url) {
+    url = encodeURI(url);
+    return document.getElementById(url).querySelector('.leancloud-visitors-count');
+  }
+  if (CONFIG.page.isPost) {
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.getAttribute('id'));
+      var title = visitors.getAttribute('data-flag-title');
+
+      Counter('get', `/classes/Counter?where=${JSON.stringify({ url })}`)
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+              leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .then(response => response.json())
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              })
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+  } else {
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.getAttribute('id'));
+      });
+
+      Counter('get', `/classes/Counter?where=${JSON.stringify({ url: { '$in': entries } })}`)
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length === 0) {
+            document.querySelectorAll('.leancloud_visitors .leancloud-visitors-count').forEach(element => {
+              element.innerText = 0;
+            });
+            return;
+          }
+          for (let item of results) {
+            let { url, time } = item;
+            leancloudSelector(url).innerText = time;
+          }
+          for (let url of entries) {
+            var element = leancloudSelector(url);
+            if (element.innerText == '') {
+              element.innerText = 0;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+  }
+
+  fetch('https://app-router.leancloud.cn/2/route?appId=p5vI8bMriFdBL08LuwR0m6ps-gzGzoHsz')
+    .then(response => response.json())
+    .then(({ api_server }) => {
+      var Counter = (method, url, data) => {
+        return fetch(`https://${api_server}/1.1${url}`, {
+          method: method,
+          headers: {
+            'X-LC-Id': 'p5vI8bMriFdBL08LuwR0m6ps-gzGzoHsz',
+            'X-LC-Key': 'KWtDeAwcy04MRk60oCPKMmPq',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
 
 
       </div>
