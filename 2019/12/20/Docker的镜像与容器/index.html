@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="Docker 是基于 linux 内核的 cgroup 和 namespace 等实现的进程隔离技术，是操作系统层面的虚拟化技术。由于进程在宿主机上被分割成独立的空间，就像一个独立的容器将这些进程与外界隔离开来，因此被称为容器。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker的镜像与容器">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/Docker%E7%9A%84%E9%95%9C%E5%83%8F%E4%B8%8E%E5%AE%B9%E5%99%A8/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="Docker 是基于 linux 内核的 cgroup 和 namespace 等实现的进程隔离技术，是操作系统层面的虚拟化技术。由于进程在宿主机上被分割成独立的空间，就像一个独立的容器将这些进程与外界隔离开来，因此被称为容器。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbecu45o9bj31uo0rg0ug.jpg">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.146Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbecu45o9bj31uo0rg0ug.jpg">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/Docker%E7%9A%84%E9%95%9C%E5%83%8F%E4%B8%8E%E5%AE%B9%E5%99%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Docker的镜像与容器 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/Docker%E7%9A%84%E9%95%9C%E5%83%8F%E4%B8%8E%E5%AE%B9%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Docker的镜像与容器
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.5k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Docker 是基于 linux 内核的 cgroup 和 namespace 等实现的进程隔离技术，是操作系统层面的虚拟化技术。由于进程在宿主机上被分割成独立的空间，就像一个独立的容器将这些进程与外界隔离开来，因此被称为容器。<a id="more"></a></p>
+<p>Docker 容器与传统的虚拟化技术最大的区别在于，传统的虚拟化技术是在宿主机器上虚拟出一套硬件后，在其上面运行完整的操作系统，然后在该系统上运行用户进程，属于硬件层面的虚拟化技术。而 docker 是操作系统层面的虚拟化技术，不需要虚拟化硬件，同一宿主机器上的所有容器共享宿主机的硬件和操作系统内核，只是在用户态隔离进程的运行环境和存储空间，因此对于上层用户而言一个容器就好像是一台独立的主机。下图是 docker 官网上的一张对比图，左边描述的是 docker 容器技术，右边描述的是传统的虚拟机技术。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbecu45o9bj31uo0rg0ug.jpg" alt="docker与虚拟机的区别"></p>
+<p>这个区别使得 docker 相比与传统的虚拟化技术要轻量的多，启动一个虚拟机需要占用几 G 到几十 G 的磁盘空间，需要的时间也是几分钟到十几分钟不等，而启动一个容器只一般只要几十 M 到上百 M，启动的速度更是可以在秒级时间内完成。</p>
+<p>Docker 中有三个最重要的概念：镜像、容器和仓库。弄懂这三个概念就可以使用基本的容器了。首先你可以将容器想象成是一台 linux 主机，在这个主机中会启动需要的进程，比如一个 redis 的容器就会启动一个 redis 的服务器。而启动一个容器需要镜像，类似于安装一个 linux 系统需要安装包，你可以想象镜像就是容器的安装包。最后仓库就是存放镜像的地方，方便的是从这个仓库下载镜像只需要一个命令就能搞定，就像 apt-get 安装软件那样方便。</p>
+<h2 id="使用镜像"><a href="#使用镜像" class="headerlink" title="使用镜像"></a>使用镜像</h2><p>有了镜像才能生成容器，因此我们先来了解镜像。</p>
+<h3 id="下载镜像——docker-pull"><a href="#下载镜像——docker-pull" class="headerlink" title="下载镜像——docker pull"></a>下载镜像——docker pull</h3><p>下载镜像使用 docker pull 命令来实现，该命令格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull [OPTIONS] NAME[:TAG|@DIGEST]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>可以通过 docker pull –help 查询帮助信息</li>
+<li>OPTIONS 中 -a 选项表示拉取所有标签的镜像，-q 选项表示静默下载，不打印输出信息到屏幕</li>
+<li>NAME 由<code>仓库名/镜像名:标签名</code>的格式组成，仓库名没有则从默认仓库 <code>library</code> 拉取，也就是官方镜像，镜像名必须有，标签名没有则默认拉取 <code>latest</code> 标签的镜像。同一个镜像名的镜像可以有多个标签，一般每更新一个版本就新增一个标签，<code>latest</code> 标签就是最新的镜像。</li>
+</ul>
+<p>比如可以这样下载标签为 18.04 的 ubuntu 镜像：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ docker pull ubuntu:18.04</span><br><span class="line">18.04: Pulling from library&#x2F;ubuntu</span><br><span class="line">bf5d46315322: Pull complete</span><br><span class="line">9f13e0ac480c: Pull complete</span><br><span class="line">e8988b5b3097: Pull complete</span><br><span class="line">40af181810e7: Pull complete</span><br><span class="line">e6f7c7e5c03e: Pull complete</span><br><span class="line">Digest: sha256:147913621d9cdea08853f6ba9116c2e27a3ceffecf3b492983ae97c3d643fbbe</span><br><span class="line">Status: Downloaded newer image for ubuntu:18.04</span><br></pre></td></tr></table></figure>
+
+<h3 id="列出镜像——docker-image-ls"><a href="#列出镜像——docker-image-ls" class="headerlink" title="列出镜像——docker image ls"></a>列出镜像——docker image ls</h3><p><code>docker image ls</code> 命令可以列出系统中已经下载了的所有镜像。docker 中很多命令与 linux 的命令相似，因此在使用的时候可以类比，docker 中有诸如 rm、ls、ps等命令。将了解更多的命令同样可以通过 <code>docker image --help</code> 来查看帮助信息。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ docker image ls         </span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">zookeeper           latest              e41846a619f5        17 hours ago        224MB</span><br><span class="line">ubuntu              18.04               cf0f3ca922e0        3 days ago          64.2MB</span><br><span class="line">ubuntu              latest              cf0f3ca922e0        3 days ago          64.2MB</span><br><span class="line">redis               latest              f7302e4ab3a8        2 months ago        98.2MB</span><br><span class="line">hello-world         latest              fce289e99eb9        9 months ago        1.84kB</span><br></pre></td></tr></table></figure>
+<p>列表分别包含了<code>仓库名</code>、<code>标签</code>、<code>镜像ID</code>、<code>创建时间</code>、<code>镜像大小</code>。<code>docker image ls</code>命令展示的是一个完整镜像的大小，但是由于镜像是分层存储的，不同的镜像如果使用了相同的层，这个层只会存储一份数据，所有镜像公用，因此镜像实际占用的空间大小要比显示的小。</p>
+<h3 id="删除镜像——docker-image-rm"><a href="#删除镜像——docker-image-rm" class="headerlink" title="删除镜像——docker image rm"></a>删除镜像——docker image rm</h3><p><code>docker image rm</code> 命令可以删除镜像，一般配合<code>docker image ls</code>命令来使用。<code>docker image rm</code>命令的使用格式是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image rm [OPTIONS] IMAGE [IMAGE...]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>使用 <code>docker image rm --help</code> 可以查看帮助信息</li>
+<li>OPTIONS: –force/-f 强制删除</li>
+<li>镜像可以是镜像名，或者镜像名加标签，或者镜像的ID</li>
+</ul>
+<p>比如可以这样删除标签为 latest 的 ubuntu 镜像：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker image rm ubuntu:latest</span><br><span class="line">Untagged: ubuntu:18.04</span><br><span class="line">Untagged: ubuntu@sha256:a7b8b7b33e44b123d7f997bd4d3d0a59fafc63e203d17efedf09ff3f6f516152</span><br><span class="line">Deleted: sha256:cf0f3ca922e08045795f67138b394c7287fbc0f4842ee39244a1a1aaca8c5e1c</span><br><span class="line">Deleted: sha256:c808877c0adcf4ff8dcd2917c5c517dcfc76e9e8a035728fd8f0eae195d11908</span><br><span class="line">Deleted: sha256:cdf75cc6b4d28e72a9931be2a88c6c421ad03cbf984b099916a74f107e6708ff</span><br><span class="line">Deleted: sha256:b9997ded97a1c277d55be0d803cf76ee6e7b2e8235d610de0020a7c84c837b93</span><br><span class="line">Deleted: sha256:a090697502b8d19fbc83afb24d8fb59b01e48bf87763a00ca55cfff42423ad36</span><br></pre></td></tr></table></figure>
+
+<p><strong>Untagged 和 Deleted</strong><br>在执行 <code>docker image rm</code> 时，出现了两种情况，Untagged 和 Deleted。因为同一个镜像（不只是同名，而是真正意义上的同一个）可以对应多个标签，当执行 <code>rm</code> 命令时先移除这个指定的标签，只有当移除的标签是最后一个标签的时候才会同时删除这个镜像。除此之外，因为镜像是分层存储的，要删除的镜像可能是别的镜像的基础层，如果删除了这个镜像也会导致依赖方出现问题。因此，如果有别的镜像依赖这个镜像，那么这是这个镜像也不会被删除。另外，如果有其他容器依赖于这个镜像，那么也不能删除这个镜像，因为删除这个镜像必然会导致容器出现故障。</p>
+<h2 id="操作容器"><a href="#操作容器" class="headerlink" title="操作容器"></a>操作容器</h2><h3 id="运行容器——docker-run"><a href="#运行容器——docker-run" class="headerlink" title="运行容器——docker run"></a>运行容器——docker run</h3><p>运行容器有两种方式，一种是新建一个容器并启动，另一种是启动一个已终止的容器。</p>
+<p><code>docker run</code> 命令用来新建一个容器并启动，该命令的使用格式是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker run [OPTIONS] IMAGE [COMMAND] [ARG...]</span><br><span class="line">&#96;&#96;&#96; </span><br><span class="line"></span><br><span class="line">比如下面这个命令会通过 ubuntu 镜像创建并运行一个容器，然后执行 &#96;&#x2F;bin&#x2F;bash&#96; 命令。</span><br></pre></td></tr></table></figure>
+<p>$ docker run -it ubuntu /bin/bash</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">其中常见的命令选项有：</span><br><span class="line">- -i 选项是让容器标准输入打开，就可以接受键盘输入了</span><br><span class="line">- -t 选项是让docker分配一个伪终端，绑定到标准输入上。通过这个伪终端就可以像操作一台 linux 机器来操作这个容器了。</span><br><span class="line">- --name &lt;容器名称&gt; 选项为容器指定一个名称</span><br><span class="line">- -d 选项让容器在后台运行，什么是后台运行，下文有说明</span><br><span class="line">&lt;&lt;&lt;&lt;&lt;&lt;&lt; Updated upstream:Docker的镜像与容器.md</span><br><span class="line">- -rm 选项是让容器终止时自动销毁</span><br><span class="line"></span><br><span class="line">用这个命令启动一个容器后，就可以像操作一台普通的 ubuntu 机器一样，操作这个容器了。可以尝试在这个容器中执行一些 linux 命令。</span><br></pre></td></tr></table></figure>
+<p>root@e7cd5bc73508:/# ps<br>  PID TTY          TIME CMD<br>    1 pts/0    00:00:00 bash<br>   10 pts/0    00:00:00 ps</p>
+<p>root@e7cd5bc73508:/# ls<br>bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">需要注意的是，对于这种以交互模式启动的容器，当终止交互后，容器就退出了。</span><br><span class="line"></span><br><span class="line">&#96;docker container start&#96; 可以启动一个终止的容器，该命令的使用格式是：</span><br></pre></td></tr></table></figure>
+<p>docker container start [OPTIONS] CONTAINER [CONTAINER…]</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">要启动一个容器，需要知道容器的ID来作为&#96;docker container start&#96;的参数，接下来介绍如何查看容器。</span><br><span class="line"></span><br><span class="line">### 查询容器状态——docker container ls</span><br><span class="line"></span><br><span class="line">&#96;docker container ls&#96; 列出所有正在运行的容器</span><br><span class="line"></span><br><span class="line">&#96;docker container ls -a&#96; 列出所有的容器，包括已经终止的容器</span><br><span class="line"></span><br><span class="line">列出的容器信息包括：</span><br><span class="line"></span><br><span class="line">- 容器ID（CONTAINER ID），这是容器的唯一标识，操作容器相关的命令都需要带上这个标识</span><br><span class="line">- 依赖的镜像名称（IMAGE）</span><br><span class="line">- 执行的命令（COMMAND）</span><br><span class="line">- 创建的时间（CREATED）</span><br><span class="line">- 容器的状态（STATUS），UP 是运行状态，Exited 是终止状态</span><br><span class="line">- 暴露的端口（PORTS）</span><br><span class="line">- 容器的名称（NAMES），可以在启动容器的时候通过 --name 选项指定容器的名称，如果没有指定，系统会生成一个默认名称</span><br><span class="line"></span><br><span class="line">### 终止容器——docker container stop</span><br><span class="line"></span><br><span class="line">&#96;docker container stop&#96; 命令用来终止一个正在运行的容器</span><br><span class="line"></span><br><span class="line">终止的容器可以通过 &#96;docker container start&#96; 命令启动，&#96;docker container restart&#96; 命令会先终止容器，然后再启动容器。</span><br><span class="line"></span><br><span class="line">### 守护态运行</span><br><span class="line"></span><br><span class="line">大多数时候需要容器在后台运行，不需要将输出结果打印到宿主主机上。此时，可以通过 -d 参数来实现。</span><br><span class="line"></span><br><span class="line">不使用 -d 选项启动下面这个容器，表现如下：</span><br></pre></td></tr></table></figure>
+<p>$ docker run ubuntu /bin/bash -c “while true; do echo hello world; sleep 1; done”<br>hello world<br>hello world<br>hello world<br>hello world<br>hello world</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">使用 -d 选项启动这个容器，表现如下：</span><br></pre></td></tr></table></figure>
+<p>$ docker run -d ubuntu /bin/bash -c “while true; do echo hello world; sleep 1; done”<br>574ee145e9ca501639a233601efe9574a356a8d7bdef461d240b2212b6aeaf77</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">在宿主的终端只输出了该容器的 ID。如果需要查看容器的输出可以使用 &#96;docker container logs&#96; 命令。本文在说容器的这些命令时都省略了最后一个参数容器 ID，这个读者在使用的时候需要自行加上，查询容器 ID 的方法前面已经介绍过了。如果想要持续获取容器的输出可以使用 &#96;docker container logs -f&#96; 命令。</span><br><span class="line"></span><br><span class="line">### 进入容器</span><br><span class="line"></span><br><span class="line">使用 -d 参数启动容器后，容器在后台运行，如果需要进入容器可以使用 &#96;docker attach&#96; 命令或 &#96;docker exec&#96; 命令。建议使用 &#96;docker exec&#96; 命令，原因在下面进行说明。</span><br><span class="line"></span><br><span class="line">**docker attach**</span><br></pre></td></tr></table></figure>
+<p>$ docker run -it -d ubuntu<br>2b10efdeaa9f0f24f0060bf636cc8f1bae9598f5e0176b498447a7b63ea10d06</p>
+<p>$ docker container ls<br>CONTAINER ID    IMAGE     COMMAND       CREATED             STATUS              PORTS          NAMES<br>2b10efdeaa9f    ubuntu    “/bin/bash”   13 seconds ago      Up 11 seconds                      cocky_golick</p>
+<p>$ docker attach 2b10efdeaa9f<br>root@2b10efdeaa9f:/# </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">使用 attach 命令，如果从这个终端退出后，这个容器也会被终止，这就是不推荐使用 &#96;attach&#96; 命令的原因。</span><br><span class="line"></span><br><span class="line">**docker exec**</span><br></pre></td></tr></table></figure>
+<p>$ docker run -it -d ubuntu<br>61299a9b910b029f9a8667131a45aff92fbc35633e4f86c8fcfb72e6362c5115</p>
+<p>$ docker container ls<br>CONTAINER ID        IMAGE      COMMAND         CREATED             STATUS          PORTS           NAMES<br>61299a9b910b        ubuntu     “/bin/bash”     6 seconds ago       Up 5 seconds                    friendly_hawking</p>
+<p>$ docker exec -it 61299a9b910b /bin/bash</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">使用 exec 命令，可以生成新的伪终端与容器进行交互，因此退出时不会导致容器退出。</span><br><span class="line"></span><br><span class="line">### 删除容器</span><br><span class="line"></span><br><span class="line">&#96;docker container rm&#96; 命令可以删除一个容器，如果要删除一个正在运行的容器可以使用&#96;docker container rm -f&#96;。</span><br><span class="line"></span><br><span class="line">如果要清除所有终止的容器可以使用 &#96;docker container prune&#96; 命令。</span><br><span class="line"></span><br><span class="line">## 访问仓库</span><br><span class="line"></span><br><span class="line">- &#96;docker login&#96; 登录到docker hub仓库</span><br><span class="line">- &#96;docker logout&#96; 退出登录</span><br><span class="line">- &#96;docker search &lt;关键词&gt;&#96; 搜索镜像</span><br><span class="line">- &#96;docker pull&#96; 从仓库下载镜像</span><br><span class="line">- &#96;docker push&#96; 将本地仓库推送到远程仓库</span><br><span class="line"></span><br><span class="line">下面演示一下这些命令的使用：</span><br></pre></td></tr></table></figure>
+<p>$ docker login<br>Login with your Docker ID to push and pull images from Docker Hub. If you don’t have a Docker ID, head over to <a href="https://hub.docker.com" target="_blank" rel="noopener">https://hub.docker.com</a> to create one.<br>Username: xxx<br>Password: xxx<br>WARNING! Your password will be stored unencrypted in /root/.docker/config.json.<br>Configure a credential helper to remove this warning. See<br><a href="https://docs.docker.com/engine/reference/commandline/login/#credentials-store" target="_blank" rel="noopener">https://docs.docker.com/engine/reference/commandline/login/#credentials-store</a></p>
+<p>Login Succeeded</p>
+<p>$ docker pull hello-world</p>
+<h1 id="为镜像-hello-world-生成一个新的标签，而且指定仓库为自己仓库的用户名"><a href="#为镜像-hello-world-生成一个新的标签，而且指定仓库为自己仓库的用户名" class="headerlink" title="为镜像 hello-world 生成一个新的标签，而且指定仓库为自己仓库的用户名"></a>为镜像 hello-world 生成一个新的标签，而且指定仓库为自己仓库的用户名</h1><p>$ docker tag hello-world:latest oscarwin/hello-world:3.0</p>
+<h1 id="将镜像推送到远程仓库，那么就可以在-docker-hub-里看到自己推送的这个镜像了"><a href="#将镜像推送到远程仓库，那么就可以在-docker-hub-里看到自己推送的这个镜像了" class="headerlink" title="将镜像推送到远程仓库，那么就可以在 docker hub 里看到自己推送的这个镜像了"></a>将镜像推送到远程仓库，那么就可以在 docker hub 里看到自己推送的这个镜像了</h1><p>$ docker push oscarwin/hello-world<br>``` </p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"><i class="fa fa-tag"></i> docker</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/GO%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="prev" title="GO环境搭建">
+      <i class="fa fa-chevron-left"></i> GO环境搭建
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/Docker%E7%9A%84%E5%AE%89%E8%A3%85/" rel="next" title="Docker 的安装">
+      Docker 的安装 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#使用镜像"><span class="nav-number">1.</span> <span class="nav-text">使用镜像</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#下载镜像——docker-pull"><span class="nav-number">1.1.</span> <span class="nav-text">下载镜像——docker pull</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#列出镜像——docker-image-ls"><span class="nav-number">1.2.</span> <span class="nav-text">列出镜像——docker image ls</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#删除镜像——docker-image-rm"><span class="nav-number">1.3.</span> <span class="nav-text">删除镜像——docker image rm</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#操作容器"><span class="nav-number">2.</span> <span class="nav-text">操作容器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#运行容器——docker-run"><span class="nav-number">2.1.</span> <span class="nav-text">运行容器——docker run</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为镜像-hello-world-生成一个新的标签，而且指定仓库为自己仓库的用户名"><span class="nav-number"></span> <span class="nav-text">为镜像 hello-world 生成一个新的标签，而且指定仓库为自己仓库的用户名</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#将镜像推送到远程仓库，那么就可以在-docker-hub-里看到自己推送的这个镜像了"><span class="nav-number"></span> <span class="nav-text">将镜像推送到远程仓库，那么就可以在 docker hub 里看到自己推送的这个镜像了</span></a></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: 'e3607d50aa63379219c7712967db3d9b',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

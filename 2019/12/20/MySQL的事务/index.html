@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="提到事务首先想到的当然是事务的四个特性：原子性、一致性、隔离性、持久性。事务的实现是由引擎层面来实现的，因此不同的存储引擎可能对事务有不同的实现方案。比如 MySQL 的 MyISAM 引擎就没有实现事务，这也是其被 InnoDB 所替代的原因之一。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL的事务">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="提到事务首先想到的当然是事务的四个特性：原子性、一致性、隔离性、持久性。事务的实现是由引擎层面来实现的，因此不同的存储引擎可能对事务有不同的实现方案。比如 MySQL 的 MyISAM 引擎就没有实现事务，这也是其被 InnoDB 所替代的原因之一。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.150Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>MySQL的事务 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MySQL的事务
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.9k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>提到事务首先想到的当然是事务的四个特性：原子性、一致性、隔离性、持久性。事务的实现是由引擎层面来实现的，因此不同的存储引擎可能对事务有不同的实现方案。比如 MySQL 的 MyISAM 引擎就没有实现事务，这也是其被 InnoDB 所替代的原因之一。<a id="more"></a></p>
+<h2 id="事务的四个特性"><a href="#事务的四个特性" class="headerlink" title="事务的四个特性"></a>事务的四个特性</h2><p><strong>原子性：</strong> 事务的所有操作在数据库中要么全部正确的反映出来，要么完全不反映。</p>
+<p><strong>一致性：</strong> 事务执行前后数据库的数据保持一致。</p>
+<p><strong>隔离性：</strong> 多个事务并发执行时，对于任何一对事务Ti和Tj，在Ti看来，Tj 要么在 Ti 之前已经完成执行，或者在Ti完成之后开始执行。因此，每个事务都感觉不到系统中有其他事务在并发执行。</p>
+<p><strong>持久性：</strong> 一个事务成功完成后，它对数据库的改变必须是永久的，即使事务刚提交机器就宕机了数据也不能丢。</p>
+<p>事务的原子性和持久性比较好理解，但是一致性会更加抽象一些。对于一致性经常有个转账的例子，A 给 B 转账，转账前后 A 和 B 的账户总和不变就是一致的。这个例子咋一看好像很清楚，但转念一想原子性是不是也能达到这个目的呢？答案是：不能，原子性可以保证 A 账户扣减和 B 账户增加同时成功或者同时失败，但是并不能保证 A 扣减的数量等于 B 增加的数量。实际上是为了达到一致性所以要同时满足其他三个条件。</p>
+<p>还有一个事务的隔离性比较复杂，因为 MySQL 的事务可以有多种隔离级别，接下里一起看看。</p>
+<h2 id="事务的隔离级别"><a href="#事务的隔离级别" class="headerlink" title="事务的隔离级别"></a>事务的隔离级别</h2><p>当多个事务并发执行时可能存在脏读(dirty read)，不可重复读(non-repeatable read)和幻读(phantom read)，为了解决这些问题因此引入了不同的隔离级别。</p>
+<p><strong>脏读：</strong> 事务 A 和事务 B 并发执行时，事务 B 可以读到事务 A 未提交的数据，就发生了脏读。脏读的本质在于事务 B 读了事务 A 未提交的数据，如果事务 A 发生了回滚，那么事务 B 读到的数据实际上是无效的。如下面案例所示：事务 B 查询到 value 的结果为100，但是因为事务 A 发生了回滚，因此 value 的值不一定是 100。</p>
+<table>
+<thead>
+<tr>
+<th align="left">事务 A</th>
+<th align="left">事务 B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">begin</td>
+<td align="left">begin</td>
+</tr>
+<tr>
+<td align="left">update t set value = 100</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select value from t</td>
+</tr>
+<tr>
+<td align="left">rollback</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">commit</td>
+<td align="left">commit</td>
+</tr>
+</tbody></table>
+<p><strong>不可重复读：</strong> 在一个事务中，多次查询同一个数据会得到不同的结果，就叫不可重复读。如下面案例所示：事务 B 两次查询 value 的结果不一致。</p>
+<table>
+<thead>
+<tr>
+<th align="left">事务 A</th>
+<th align="left">事务 B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">begin</td>
+<td align="left">begin</td>
+</tr>
+<tr>
+<td align="left">update t set value = 100</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select value from t ( value = 100 )</td>
+</tr>
+<tr>
+<td align="left">update t set value = 200</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select value from t ( value = 200 )</td>
+</tr>
+<tr>
+<td align="left">commit</td>
+<td align="left">commit</td>
+</tr>
+</tbody></table>
+<p><strong>幻读：</strong> 在一个事务中进行范围查询，查询到了一定条数的数据，但是这个时候又有新的数据插入就导致数据库中数据多了一行，这就是幻读。如下面案例所示：事务 B 两次查询到的数据行数不一样。</p>
+<table>
+<thead>
+<tr>
+<th align="left">事务 A</th>
+<th align="left">事务 B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">begin</td>
+<td align="left">begin</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select * from t</td>
+</tr>
+<tr>
+<td align="left">insert into t …</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">commit</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select * from t</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">commit</td>
+</tr>
+</tbody></table>
+<p>MySQL 的事务隔离级别包括：读未提交（read uncommitted）、读提交（read committed）可重复读（repeatable read）和串行化（serializable）。</p>
+<p><strong>未提交读：</strong> 一个事务还未提交，其造成的更新就可以被其他事务看到。这就造成了脏读。</p>
+<p><strong>读提交：</strong> 一个事务提交后，其更改才能被其他事务所看到。读提交解决了脏读的问题。</p>
+<p><strong>可重复读：</strong> 在一个事务中，多次读取同一个数据得到的结果总是相同的，即使有其他事务更新了这个数据并提交成功了。可重复读解决了不可重复读的问题。但是还是会出现幻读。InnoDB 引擎通过多版本并发控制（Multiversion concurrency control，MVCC）解决了幻读的问题。</p>
+<p><strong>串行化：</strong> 串行话是最严格的隔离级别，在事务中对读操作加读锁，对写操作加写锁，所以可能会出现大量锁争用的场景。</p>
+<p>从上到下，隔离级别越来越高，效率相应也会随之降低，对于不同的隔离级别需要根据业务场景进行合理选择。</p>
+<h3 id="查询和修改事务的隔离级别"><a href="#查询和修改事务的隔离级别" class="headerlink" title="查询和修改事务的隔离级别"></a>查询和修改事务的隔离级别</h3><p>下面的命令可以查询 InnoDB 引擎全局的隔离级别和当前会话的隔离级别</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select @@global.tx_isolation,@@tx_isolation;</span><br><span class="line">+-----------------------+-----------------+</span><br><span class="line">| @@global.tx_isolation | @@tx_isolation  |</span><br><span class="line">+-----------------------+-----------------+</span><br><span class="line">| REPEATABLE-READ       | REPEATABLE-READ |</span><br><span class="line">+-----------------------+-----------------+</span><br></pre></td></tr></table></figure>
+
+<p>设置innodb的事务级别方法是：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> 作用域 <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> 事务隔离级别</span><br><span class="line"></span><br><span class="line"><span class="keyword">SET</span> [<span class="keyword">SESSION</span> | <span class="keyword">GLOBAL</span>] <span class="keyword">TRANSACTION</span> <span class="keyword">ISOLATION</span> <span class="keyword">LEVEL</span> &#123;<span class="keyword">READ</span> UNCOMMITTED | <span class="keyword">READ</span> COMMITTED | REPEATABLE <span class="keyword">READ</span> | <span class="keyword">SERIALIZABLE</span>&#125;</span><br><span class="line"></span><br><span class="line">mysql&gt; <span class="keyword">set</span> <span class="keyword">global</span> <span class="keyword">transaction</span> <span class="keyword">isolation</span> <span class="keyword">level</span> <span class="keyword">read</span> committed; // 设定全局的隔离级别为读提交</span><br><span class="line"></span><br><span class="line">mysql&gt; set session transaction isolation level read committed; // 设定当前会话的隔离级别为读提交</span><br></pre></td></tr></table></figure>
+<h3 id="事务的启动方式"><a href="#事务的启动方式" class="headerlink" title="事务的启动方式"></a>事务的启动方式</h3><ul>
+<li><p>MySQL 里可以通过 begin 命令或 start transaction 来显示启动一个事务。显示开启的事务，需要使用 commit 命令进行提交。</p>
+</li>
+<li><p>MySQL 里如果没有显示执行命令开启事务，MySQL 也会在执行第一条命令的时候自动开启事务。如果自动提交 autocommit 处于开启状态，那么自动开启的事务也会被自动提交。那么执行一条 select 语句时，MySQL 首先会自动开启一个事务，并且在 select 语句执行完后自动提交。因此，在 MySQL 里执行一条语句时也是一个完整的事务。</p>
+</li>
+<li><p>在 MySQL 里执行命令 set autocommit=0 可以关闭事务的自动提交。如果 autocommit 处于关闭状态，那么执行一条 select 语句时仍然会开启一个事务，并且在执行完成后不会自动提交。</p>
+</li>
+<li><p>begin 和 start transaction 命令并不是执行后立即开启一个事务，而是在执行第一条语句时才开启事务。start transaction with consistent snapshot 命令才是执行后就立即开启事务。</p>
+</li>
+</ul>
+<h3 id="举例说明不同隔离级别的影响"><a href="#举例说明不同隔离级别的影响" class="headerlink" title="举例说明不同隔离级别的影响"></a>举例说明不同隔离级别的影响</h3><p>接下来我们用一个案例来看不同隔离级别下会有怎样不同的结果。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> t (k <span class="built_in">int</span>) <span class="keyword">ENGINE</span>=<span class="keyword">InnoDB</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> t <span class="keyword">values</span> (<span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th align="left">事务 A</th>
+<th align="left">事务 B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">begin</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">1: select k from t</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">begin; update t set k = k + 1</td>
+</tr>
+<tr>
+<td align="left">2: select k from t</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">commit</td>
+</tr>
+<tr>
+<td align="left">3: select k from t</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">commit</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">4: select k from t</td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>隔离级别为未提交读时：对于事务 A，第1条查询语句的结果是1，第2条查询语句的结果是2，第3条和第4条查询语句的结果也都是2。</p>
+<p>隔离级别为读提交时：对于事务 A，第1条查询语句的结果是1，第2条查询语句的结果是1，第3条查询语句的结果是2，第4条查询语句的结果也是2。</p>
+<p>隔离级别为可重复读时：对于事务 A，第1条、第2条和第3条查询语句的结果都是1，第4条查询语句的结果是2。</p>
+<p>隔离级别为串行化时：对于事务 A，第1条查询语句的结果是1。这时事务 B 执行更新语句时会被阻塞，因为事务 A 在这条数据上加上了读锁，事务 B 要更新这个数据就必须加写锁，由于读锁和写锁冲突，因此事务 B 只能等到事务 A 提交后释放读锁才能进行更新。因此，事务 A 的第2条和第3条查询语句的结果也是1，第4条查询语句的结果是2。</p>
+<h2 id="事务隔离性的实现"><a href="#事务隔离性的实现" class="headerlink" title="事务隔离性的实现"></a>事务隔离性的实现</h2><p>事务的隔离性通过 undo log 日志来实现，对于同一条数据，InnoDB 会存储其多个版本，多个版本则是通过 undo log 日志来实现，将当前值回滚不同的次数就可以得到不同低版本的数据，这就是数据库的多版本并发控制（MVCC）。当然只有 undo log 日志还不行，为了支持提交读和可重复读两种隔离级别，一个事务 Ti 如何知道自己应该使用哪个版本的数据呢？InnoDB 的做法是维护一个一致性视图来现实。</p>
+<p>InnoDB 给每一个事务维护一个唯一的事务 ID，事务 ID 是严格递增分配的，也就是后开启的事务的事务 ID 一定比先开启的事务的事务 ID 要大。因为通过 undo log 日志可以得到多个版本的数据，可以假想在数据库中每个数据有多个版本。每个事务更新一个数据时，就会生成一个新版本数据并且将自己的事务 ID 贴在这个版本的数据上，用来标识这个数据的版本。</p>
+<p>当开启一个新的事务时，InnoDB 会为每一个事务维护一个数组，这个数组中保存了当前活跃的事务的事务ID，所谓活跃的事务指事务已经开始，但是还未提交的事务。在这个数组中最小的事务 ID 将其称为低水位，最大的事务 ID 加1称为高水位。当某个事务读取某条数据时，从该数据的最高版本开始，如果读得起那么就取这个数据，如果读不起就取更低一个版本的数据，如此循环，直到能读取有效数据。</p>
+<p>在判断读得起和读不起时就只有以下几种情况：</p>
+<ol>
+<li><p>数据版本号大于等于事务的高水位，说明是后面的事务创建的，读不起；</p>
+</li>
+<li><p>数据版本号小于等于低水位，说明是事务开启前就已经提交的，或者是本事务自己修改的，读得起；</p>
+</li>
+<li><p>数据版本号介于高水位和低水位之间，如果该版本号在数组里，说明是未提交的，读不起。</p>
+</li>
+<li><p>数据版本号介于高水位和低水位之间，如果该版本号不在数组里，说明是已经提交的，读的起。</p>
+</li>
+</ol>
+<p>提交读和可重复读的区别在于，提交读每次执行语句前更新这个数组，这样已经提交的数据就不在数组里，就会被看到，可重复读就是始终使用事务开启时生成的数组。</p>
+<h3 id="快照读和当前读"><a href="#快照读和当前读" class="headerlink" title="快照读和当前读"></a>快照读和当前读</h3><p>InnoDB 给每一个事务生成一个唯一事务 ID 的方法称为生成快照，因此这种场景称为快照读。但是对于更新数据不能使用快照读，因为更新数据时如果使用快照读会可能会覆盖其他事务的更改。另外查询时如果加锁也会采用当前读的方式。当前读就是读这个数据最新的提交数据。InnoDB 的多版本并发控制实现了在串行化的隔离级别下读不加锁，提高了并发性能。</p>
+<p>下面通过一个例子来理解快照读和当前读：</p>
+<p>首先建一个表 t，并插入一条数据。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql-&gt; create table t(k int)ENGINE=InnoDB;</span><br><span class="line">mysql-&gt; insert into t(k) values (1);</span><br></pre></td></tr></table></figure>
+<p>然后将事务的隔离级别设置为 REPEATABLE-READ，接着开启三个事务，并按照下面的顺序进行执行。</p>
+<table>
+<thead>
+<tr>
+<th align="left">事务 A</th>
+<th align="left">事务 B</th>
+<th align="left">事务 C</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">start transaction with consistent snapshot</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">start transaction with consistent snapshot</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">select k fromt t;</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select k from t;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">update t set k = k + 1;</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">update t set k = k + 1;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left">select k from t; commit;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">select k from t; commit;</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>结果是：事务 A 两次读取的结果都是1，事务 B 第一次读取的结果是1，第二次读取的结果是 3。事务 A 两次都是快照读，在可重复读的隔离级别下，因此两次读到的结果相同。事务 B 第一次是快照读，但是 update 语句进行了一次当前读将 k 的值更新为事务 C 已经提交的结果 2，并且在此基础上再加1得到3。执行了 update 操作时会创建一个新版本的数据，并且将自己的事务 ID 作为该数据的版本号，因此在该事务内可以读到自己更新的数据。因此事务 B 最后一次查询的结果是 3。</p>
+<p>最近在学习 MySQL 的原理，一篇文章做个笔记。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] 数据库系统概念（第6版）</p>
+<p>[2] MySQL实战45讲，林晓斌</p>
+<p>[3] 高性能MySQL（第3版）</p>
+<p>[4] <a href="https://www.cnblogs.com/549294286/p/5433318.html" target="_blank" rel="noopener">事务的隔离级别和mysql事务隔离级别修改</a></p>
+<p>[5] <a href="https://github.com/hedengcheng/tech/blob/master/database/MySQL/MySQL%20%E5%8A%A0%E9%94%81%E5%A4%84%E7%90%86%E5%88%86%E6%9E%90.pdf" target="_blank" rel="noopener">MySQL 加锁处理分析, 何登成</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"><i class="fa fa-tag"></i> 数据库</a>
+              <a href="/tags/mysql/" rel="tag"><i class="fa fa-tag"></i> mysql</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/" rel="prev" title="MySQL的锁">
+      <i class="fa fa-chevron-left"></i> MySQL的锁
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%9A%84%E4%B8%80%E6%9D%A1%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E6%80%8E%E6%A0%B7%E5%AE%9E%E7%8E%B0%E7%9A%84/" rel="next" title="MySQL的一条查询和更新语句是怎样实现的">
+      MySQL的一条查询和更新语句是怎样实现的 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#事务的四个特性"><span class="nav-number">1.</span> <span class="nav-text">事务的四个特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#事务的隔离级别"><span class="nav-number">2.</span> <span class="nav-text">事务的隔离级别</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#查询和修改事务的隔离级别"><span class="nav-number">2.1.</span> <span class="nav-text">查询和修改事务的隔离级别</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务的启动方式"><span class="nav-number">2.2.</span> <span class="nav-text">事务的启动方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#举例说明不同隔离级别的影响"><span class="nav-number">2.3.</span> <span class="nav-text">举例说明不同隔离级别的影响</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#事务隔离性的实现"><span class="nav-number">3.</span> <span class="nav-text">事务隔离性的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#快照读和当前读"><span class="nav-number">3.1.</span> <span class="nav-text">快照读和当前读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: '775adb4905d8d0ea857503b8638b6e36',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

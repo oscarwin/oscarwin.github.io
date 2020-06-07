@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="简介zookeeper是一个分布式服务框架，是Apache Hadoop 的一个子项目。zookeeper 之所以会出现，是因为在分布式系统中经常需要依赖一些公共的东西(比如配置文件)，但是提供这个服务的系统本身又不能是单点，因此就出现了 zookeeper 来解决这种场景的问题。目前主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管">
+<meta property="og:type" content="article">
+<meta property="og:title" content="zookeeper介绍与环境搭建">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="简介zookeeper是一个分布式服务框架，是Apache Hadoop 的一个子项目。zookeeper 之所以会出现，是因为在分布式系统中经常需要依赖一些公共的东西(比如配置文件)，但是提供这个服务的系统本身又不能是单点，因此就出现了 zookeeper 来解决这种场景的问题。目前主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/8/1695d14f9f432680?w=646&h=219&f=png&s=39012">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/15/16981b0d7b560fa7?w=576&h=328&f=jpeg&s=11010">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/3/15/16981d516a096839?w=807&h=379&f=png&s=23201">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.148Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="zookeeper">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/3/8/1695d14f9f432680?w=646&h=219&f=png&s=39012">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>zookeeper介绍与环境搭建 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          zookeeper介绍与环境搭建
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.1k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>zookeeper是一个分布式服务框架，是Apache Hadoop 的一个子项目。zookeeper 之所以会出现，是因为在分布式系统中经常需要依赖一些公共的东西(比如配置文件)，但是提供这个服务的系统本身又不能是单点，因此就出现了 zookeeper 来解决这种场景的问题。目前主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。<a id="more"></a></p>
+<p>在介绍zookeeper集群是，zookeeper的机器称为服务端，用zookeeper来管理的分布式系统的机器称为客户端。</p>
+<p>首先zookeeper是用来服务于分布式系统的，而zookeeper集群本身也是一个分布式系统，zookeeper集群至少需要三台机器，因为zookeeper集群会选举出一个leader，而投票选举leader需要严格意义上的多数成员赞同(只要半数以上节点存活，ZooKeeper 就能正常服务)，所以zookeeper集群一般是奇数个，但也并不是强制要求。一般采用3台或5台的配置。zookeeper集群是典型的cp系统，保证一致性和分区容错性的条件下，牺牲了一定的可用性。3台配置可以容忍一台机器挂掉，5台的配置可以容忍第二台挂掉。4台机器相比3台机器并没有任何优势，因为4台机器也只能容忍一台机器挂掉。</p>
+<p>机器越多，zookeeper的读性能越好，可以同时服务更多的客户端。但是，机器越多写性能会下降。因为，zookeeper为了保证严格的一致性，必须保证所有可用的服务都成功写入。因此，机器的数量也不可盲目增多。5台机器是比较合理的配置，可以同时容忍两台机器挂掉，而写入的成本也可以接受。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/8/1695d14f9f432680?w=646&h=219&f=png&s=39012" alt=""></p>
+<p>ZooKeeper还有一个重要的概念——节点。节点是zookeeper的一种文件存储模型，类似于linux的目录结构。每一个节点可以存储数据，也可以作为下一个节点的父节点。目录树的结构用来保证每个节点的唯一性。可以存储在节点中的数据的默认最大大小为 1 MB。因此，即使ZooKeeper的层次结构看起来与文件系统相似，也不应该将它用作一个通用的文件系统。相反，应该只将它用作少量数据的存储机制，以便为分布式应用程序提供可靠性、可用性和协调。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/15/16981b0d7b560fa7?w=576&h=328&f=jpeg&s=11010" alt=""></p>
+<h2 id="zookeeper可以用来做什么"><a href="#zookeeper可以用来做什么" class="headerlink" title="zookeeper可以用来做什么"></a>zookeeper可以用来做什么</h2><p><strong>注册中心：</strong><br>在分布式系统中，常见的场景是通过RPC调用其他机器上的服务。而调用其他机器上的服务首先要去配置中心读取提供该服务主机的信息。服务与主机之间的映射关系是在服务注册的时候建立的。比如有两台机器提供了一个称为app1的服务，这两台提供服务的机器在启动的时候调用zookeeper的api在服务的根节点app1上进行注册，生成了子节点/app1/c1和/app1/c2。而调用方则从zookeeper订阅该服务，获得该提供该服务的主机信息。当有新的服务提供者注册到zookeeper的/app1/c3节点上时，注册中心会通知所有的订阅方发生的变更。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/3/15/16981d516a096839?w=807&h=379&f=png&s=23201" alt=""></p>
+<p><strong>配置管理：</strong>后端的服务很多地方都需要使用配置文件，分布式系统中，一个配置文件的更改需要一台台的修改，这样的体力活有了zookeeper就不在需要了。可以将配置文件放在zookeeper的一个节点中，所有需要使用这个配置文件的去订阅这个节点，这样当配置文件发生变更时，zookeeper会将变更后的配置文件下发到所有订阅的机器上。</p>
+<p><strong>分布式锁：</strong>在分布式系统中可能会出现同时修改竞争资源的场景，使用redis做分布式锁的应用场景比较多，而zookeeper同样可以实现分布式锁。</p>
+<p><strong>领导人选举：</strong>在后端服务中，很多时候只需要单机去运行，但是单机运行会造成单点。为了避免单点，可以在多机上部署服务，然后通过zookeeper给订阅了该服务的客户端选出一个leader。我们可以在程序中进行逻辑判断，如果是leader才执行相应的业务逻辑，否者不执行。当leader的机器宕掉后，又会有新的leader被选出，这样就解决单点问题。</p>
+<p>leader的选举原理是，客户端抢占去创建一个指定的节点，并将客户端的ip地址写入到节点的data中，如果节点不存在，那么就将成功创建了这个节点的客户端定义为leader，如果节点已经存在，则获取该节点的数据，将节点中存储的ip与本机的ip进行比较，如果相同说明就是leader，否者就不是。</p>
+<p>zookeeper实现简单的分布式锁，也可以采用相同的原理，创建节点成功就表示抢锁成功。</p>
+<h1 id="zookeeper集群搭建"><a href="#zookeeper集群搭建" class="headerlink" title="zookeeper集群搭建"></a>zookeeper集群搭建</h1><h2 id="1-使用yum安装JVM"><a href="#1-使用yum安装JVM" class="headerlink" title="1 使用yum安装JVM"></a>1 使用yum安装JVM</h2><p>zookeeper是运行在JVM环境下的，所以首先要安装JVM环境。</p>
+<h3 id="centos-系统安装-jdk1-8"><a href="#centos-系统安装-jdk1-8" class="headerlink" title="centos 系统安装 jdk1.8"></a>centos 系统安装 jdk1.8</h3><p><strong>执行以下命令，检查是否已经安装 jdk</strong><br>    [root@localhost ~]# java -version</p>
+<p><strong>执行以下命令，查看yum库中jdk的版本</strong></p>
+<pre><code>[root@localhost ~]# yum search java | grep jdk</code></pre><p><strong>执行以下命令，选择 jdk1.8 版本安装</strong></p>
+<pre><code>[root@localhost ~]# yum install java-1.8.0-openjdk</code></pre><p><strong>修改环境变量</strong></p>
+<p>jdk的默认安装路径为<code>/usr/lib/jvm</code></p>
+<pre><code>[root@localhost ~]# cd /usr/lib/jvm
+[root@localhost ~]# ll
+total 4
+drwxr-xr-x 3 root root 4096 Mar  8 12:48 java-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64
+lrwxrwxrwx 1 root root   21 Mar  8 12:48 jre -&gt; /etc/alternatives/jre
+lrwxrwxrwx 1 root root   27 Mar  8 12:48 jre-1.8.0 -&gt; /etc/alternatives/jre_1.8.0
+lrwxrwxrwx 1 root root   35 Mar  8 12:48 jre-1.8.0-openjdk -&gt; /etc/alternatives/jre_1.8.0_openjdk
+lrwxrwxrwx 1 root root   51 Mar  8 12:48 jre-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64 -&gt; java-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64/jre
+lrwxrwxrwx 1 root root   29 Mar  8 12:48 jre-openjdk -&gt; /etc/alternatives/jre_openjdk</code></pre><p>可以看到有一个软连接，将这个软连接的路径写到home目录中</p>
+<pre><code>jre-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64 -&gt; java-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64/jre</code></pre><p>在<code>/etc/profile</code>文件中添加环境变量</p>
+<pre><code>#set java environment
+JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk-1.8.0.201.b09-2.el7_6.x86_64
+JRE_HOME=$JAVA_HOME/jre
+CLASS_PATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib
+PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
+export JAVA_HOME JRE_HOME CLASS_PATH PATH</code></pre><p>运行<code>source /etc/profile</code>让环境变量生效</p>
+<p><strong>验证安装是否成功</strong></p>
+<pre><code>[root@localhost ~]# java -version
+openjdk version &quot;1.8.0_201&quot;
+OpenJDK Runtime Environment (build 1.8.0_201-b09)
+OpenJDK 64-Bit Server VM (build 25.201-b09, mixed mode)</code></pre><h3 id="debian-系统安装-jdk1-8"><a href="#debian-系统安装-jdk1-8" class="headerlink" title="debian 系统安装 jdk1.8"></a>debian 系统安装 jdk1.8</h3><p><strong>检查是否已经安装 jdk</strong></p>
+<pre><code>[root@localhost ~]# java -version</code></pre><p><strong>执行以下命令，更新软件包</strong></p>
+<pre><code>[root@localhost ~]# sudo apt update</code></pre><p><strong>安装 jdk</strong></p>
+<pre><code>[root@localhost ~]# sudo apt install default-jre // 安装jre
+[root@localhost ~]# sudo apt install default-jdk // 安装jdk</code></pre><p><strong>环境变量的配置</strong></p>
+<p>环境变量的配置与上面类似，主要是要在环境变量中新增 JAVA_HOME, JRE_HOME, JAVA_HOME/bin, JRE_HOME/bin 四个环境变量。jdk 的默认安装路径是 <code>/usr/lib/jvm</code>。<br>如果系统中安装了多个版本的 jdk，运行 <code>update-alternatives --config java</code>，然后输入指定版本的序号就可以选择该版本作为系统的当前版本。</p>
+<h2 id="2-安装zookeeper"><a href="#2-安装zookeeper" class="headerlink" title="2 安装zookeeper"></a>2 安装zookeeper</h2><h3 id="下载"><a href="#下载" class="headerlink" title="下载"></a>下载</h3><p>使用清华大学开源软件镜像源下载</p>
+<pre><code>wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.4.13/zookeeper-3.4.13.tar.gz</code></pre><p>解压文件，放到一个目录中，我的放在opt目录</p>
+<pre><code>tar -xzvf zookeeper-3.4.13.tar.gz</code></pre><p>新建一个目录用来保存zookeeper的本地数据</p>
+<pre><code>mkdir /var/lib/zookeeper</code></pre><p>修改配置文件，在目录<code>zookeeper-3.4.13/conf/</code>中拷贝配置文件<code>zoo_sample.cfg</code>，并将其重命名为<code>zoo.cfg</code>。修改后的配置文件如下所示：</p>
+<pre><code># The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+# do not use /tmp for storage, /tmp here is just 
+# example sakes.
+dataDir=/var/lib/zookeeper
+# the port at which the clients will connect
+clientPort=2181
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the 
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to &quot;0&quot; to disable auto purge feature
+#autopurge.purgeInterval=1
+
+server.1=47.107.41.24:2888:3888
+server.2=34.73.24.64:2888:3888
+server.3=35.220.130.110:2888:3888</code></pre><p>启动zookeeper</p>
+<pre><code>[root@localhost]# cd zookeeper-3.4.13/bin
+[root@localhost]# ./zkServer.sh start</code></pre><h1 id="基于-Docker-搭建-zookeeper-集群"><a href="#基于-Docker-搭建-zookeeper-集群" class="headerlink" title="基于 Docker 搭建 zookeeper 集群"></a>基于 Docker 搭建 zookeeper 集群</h1><p>对于分布式系统，往往是集群部署，我们在进行实践时可能没有这么多机器来搭建集群，以前的办法是安装多个虚拟机，但是虚拟机还是太笨重，现在有了 docker 容器技术可以很方便的在一台物理机上搭建集群环境。接下来本文将详细描述如何用 docker 来搭建一个 zookeeper 集群。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/zookeeper/" rel="tag"><i class="fa fa-tag"></i> zookeeper</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/" rel="prev" title="典型服务器模式原理分析与实践">
+      <i class="fa fa-chevron-left"></i> 典型服务器模式原理分析与实践
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/" rel="next" title="MySQL的锁">
+      MySQL的锁 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper可以用来做什么"><span class="nav-number">1.1.</span> <span class="nav-text">zookeeper可以用来做什么</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#zookeeper集群搭建"><span class="nav-number">2.</span> <span class="nav-text">zookeeper集群搭建</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-使用yum安装JVM"><span class="nav-number">2.1.</span> <span class="nav-text">1 使用yum安装JVM</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#centos-系统安装-jdk1-8"><span class="nav-number">2.1.1.</span> <span class="nav-text">centos 系统安装 jdk1.8</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#debian-系统安装-jdk1-8"><span class="nav-number">2.1.2.</span> <span class="nav-text">debian 系统安装 jdk1.8</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-安装zookeeper"><span class="nav-number">2.2.</span> <span class="nav-text">2 安装zookeeper</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#下载"><span class="nav-number">2.2.1.</span> <span class="nav-text">下载</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#基于-Docker-搭建-zookeeper-集群"><span class="nav-number">3.</span> <span class="nav-text">基于 Docker 搭建 zookeeper 集群</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: 'cff35240f74dbb478837fdceb6f5f4ba',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

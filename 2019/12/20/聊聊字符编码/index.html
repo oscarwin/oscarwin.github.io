@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="你是否有过这样的经历，文件在别人电脑上看着好好的，但是拷贝到自己的电脑上就发现乱码了。或者作为程序员的你，打开别人的代码时，发现中文注释乱码了，而代码缺一点毛病都没有。我曾经也被这些问题困扰许久，虽然很多时候转换一下字符编码问题就解决了，但是背后的原因却一直缕不顺。因此，想借这篇文章，尽可能把这件事情给说清楚。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="聊聊字符编码">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/%E8%81%8A%E8%81%8A%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="你是否有过这样的经历，文件在别人电脑上看着好好的，但是拷贝到自己的电脑上就发现乱码了。或者作为程序员的你，打开别人的代码时，发现中文注释乱码了，而代码缺一点毛病都没有。我曾经也被这些问题困扰许久，虽然很多时候转换一下字符编码问题就解决了，但是背后的原因却一直缕不顺。因此，想借这篇文章，尽可能把这件事情给说清楚。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/1/9/168334939701eda6?w=500&h=596&f=jpeg&s=86616">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/1/20/168691e0e4a9447e?w=596&h=562&f=gif&s=21156">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/1/20/168692bd4457be11?w=255&h=198&f=png&s=73973">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.149Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="字符编码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/1/9/168334939701eda6?w=500&h=596&f=jpeg&s=86616">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/%E8%81%8A%E8%81%8A%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>聊聊字符编码 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E8%81%8A%E8%81%8A%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          聊聊字符编码
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>你是否有过这样的经历，文件在别人电脑上看着好好的，但是拷贝到自己的电脑上就发现乱码了。或者作为程序员的你，打开别人的代码时，发现中文注释乱码了，而代码缺一点毛病都没有。我曾经也被这些问题困扰许久，虽然很多时候转换一下字符编码问题就解决了，但是背后的原因却一直缕不顺。因此，想借这篇文章，尽可能把这件事情给说清楚。<a id="more"></a></p>
+<h2 id="字符编码的起源-ASCII码"><a href="#字符编码的起源-ASCII码" class="headerlink" title="字符编码的起源-ASCII码"></a>字符编码的起源-ASCII码</h2><p>计算机存储数据都是以二进制的形式进行存储的，但是二进制形式人类是无法直接解读的。因此，对于保存在计算机上的文本数据，需要一张映射表实现二进制与文字之间的相互转换。比如，可以约<code>定0000 0001</code>代表字母A，<code>0000 0002</code>代表字母B，因此当你保存一段文本<code>ABA</code>时，实际上计算机存储的是<code>0000 0001 0000 0002 0000 0001</code>。相应的，当你打开这个文件时，本质读取的二进制数据，但是编辑器会将这段二进制码查表转换成<code>ABA</code>。</p>
+<p>计算机问世的早期，有这样一张映射表被建立作为编解码的标准，称为ASCII码。<br><img src="https://user-gold-cdn.xitu.io/2019/1/9/168334939701eda6?w=500&h=596&f=jpeg&s=86616" alt="ASCII码"><br>如上图所示，ASCII码用7个bit位表示，范围从0~127，一共128个字符。在计算机问世的早期，主要只有英文符号，而且存储空间十分有限，因此用一个字节就能够满足需求了。但是随着计算机的快速普及，各国都有将本国文字进行输入输出的需求，但是ASCII码无法满足这样的需求，因此需要新的编码。</p>
+<h2 id="百花齐放-多字符集"><a href="#百花齐放-多字符集" class="headerlink" title="百花齐放-多字符集"></a>百花齐放-多字符集</h2><p>对于拉丁语系国家而言，他们可以扩展ASCII码的第8个bit位来满足本国的编码需求，但是对于非拉丁语系的国家而言，单字符集（只用了一个字节完成编码的称为单字符集，对应的就是多个字节编码的成为多字符集）无法满足编码本国语言的需求，因此他们用多个字节来表示一个文字。例如，我们国家就是使用的双字节字符编码，使用最为广泛的就是GB2312编码。但是GB2312只能编码简体中文，因此出现了GBK编码，GBK编码除了支持简体中文，还支持繁体中文以及日语、韩语等的编码，是大一统的编码。</p>
+<p>GBK的编码规则<br>GBK编码使用1-2个字节进行编码，GBK编码分为很多个码页，每个码页的范围编码的范围都是一个字节，即0x00-0xFF。GBK编码先通过第一个字节查询第一张表(如下图)。<br><img src="https://user-gold-cdn.xitu.io/2019/1/20/168691e0e4a9447e?w=596&h=562&f=gif&s=21156" alt=""></p>
+<p>如果第一个字节的首位为0，也就是范围在0x00-0x80之间时，直接从该表中查询得到对应的字符，和传统的ASCII码查询的方式相同。例如百分号<code>%</code>的编码就是0x25。</p>
+<p>如果第一个字节的首位为1，也就是范围在0x81-0xFF之间时，先查询该表得到第二个字节需要查询的编码页的页码号。例如汉字<code>丏</code>的编码为<code>8144</code>，第一个字节先查询到要查第0x81编号的页码，然后在0x81编号的页码中查询编码为0x44的对应的文字就是<code>丏</code>。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/1/20/168692bd4457be11?w=255&h=198&f=png&s=73973" alt=""></p>
+<p>由于各国都有自己的编码，而且编码的方式还很多，规则的不统一导致，文本转化中会很麻烦，因此制定了ANSI标准，各国指定标准的多字符集编码方式，例如我国的标准编码就是GB2312。</p>
+<h2 id="全球一统-UNICODE"><a href="#全球一统-UNICODE" class="headerlink" title="全球一统-UNICODE"></a>全球一统-UNICODE</h2><p>由于各国都制定了本国的多字节的字符编码，导致全球范围内的字符字符编码集非常多，这会使得各国之间文字转换非常的麻烦。因此大佬们坐下约定了一个全球统一的编码，用一个编码表示全世界所有的文字的，这就是UNICODE编码。UNICODE编码是两个字节，因此可以编码256*256个字符，这基本可以满足全球字符编码的需求了。</p>
+<p>我们以汉字的<code>汉</code>为例，其Unicode编码为<code>\u6c49</code>，<code>\u</code>用来标识其为Unicode编码，由<code>0x6c</code>和<code>0x49</code>组成。用两个字节表示，那么就有先后顺序的问题，<code>6c49</code>和<code>496c</code>两种方式都能表示，因此两种不同顺序的编码的编码方式称为大端和小端模式</p>
+<p>Unicode实际上还是一个比较广义的概念，在实际编码规则中常见的有UCS-2,UTF-16,UTF-8。接下来我们分别阐述这几种编码的概念。</p>
+<h3 id="UCS-2与UTF-16"><a href="#UCS-2与UTF-16" class="headerlink" title="UCS-2与UTF-16"></a>UCS-2与UTF-16</h3><p>UCS-2是Unicode编码的标准实现，所有的字符都是按照两个字节编码。两个字节的顺序不同就产生了USC-2大端和USC-2小端两种模式。但是UCS-2只编码了BMP字符，而UTF16则常用变长的方式来兼容其他字符，最短两个字符。BMP字符UTF16和UCS-2是相同的，扩展的部分则用四个字节编码。</p>
+<h3 id="UTF-8"><a href="#UTF-8" class="headerlink" title="UTF-8"></a>UTF-8</h3><p>终于到了我们最熟悉的UTF-8了。Unicode编码出现后，使用拉丁文的国家发现自己吃了大亏，他们认为拉丁文原本只需要一个字节就可以编码，现在却需要两个字节，因此搞出了变长的UTF-8字符。</p>
+<p><strong>UTF-8的编码规则</strong></p>
+<p>[1] UTF-8是变长度的，长度为1-6个字节；</p>
+<p>[2] 第一个字节的连续的二进制位值为1的个数决定了其编码的位数</p>
+<p>[3] 如果第一个字节以0开头说明是单个字节的字符</p>
+<p>[4] 对于非单个字节的字符，出首字节外，其余均已10开头</p>
+<p>上面的规则用编码表示更加清晰，如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">占用字节</th>
+<th align="left">首字节大小</th>
+<th align="left">完整表示</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1字节</td>
+<td align="left">大于0</td>
+<td align="left">0xxxxxxx</td>
+</tr>
+<tr>
+<td align="center">2字节</td>
+<td align="left">大于0xc0</td>
+<td align="left">110xxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td align="center">3字节</td>
+<td align="left">大于0xe0</td>
+<td align="left">1110xxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td align="center">4字节</td>
+<td align="left">大于0xf0</td>
+<td align="left">11110xxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td align="center">5字节</td>
+<td align="left">大于0xf8</td>
+<td align="left">111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td align="center">6字节</td>
+<td align="left">大于0xfc</td>
+<td align="left">1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+</tbody></table>
+<p>根据这个编码规则，就可以判断出一个字符串是由多少个字符组成，C++代码如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">inline</span> <span class="built_in">std</span>::<span class="built_in">string</span> <span class="title">GetHideName</span><span class="params">(<span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">string</span>&amp; sUtf8Data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="built_in">std</span>::<span class="built_in">string</span>&gt; vName;</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">string</span> ch; </span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>, len = <span class="number">0</span>; i != sUtf8Data.length(); i += len)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> byte = (<span class="keyword">unsigned</span>)sUtf8Data[i];</span><br><span class="line">        <span class="keyword">if</span> (byte &gt;= <span class="number">0xFC</span>) <span class="comment">// lenght 6</span></span><br><span class="line">            len = <span class="number">6</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (byte &gt;= <span class="number">0xF8</span>)</span><br><span class="line">            len = <span class="number">5</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (byte &gt;= <span class="number">0xF0</span>)</span><br><span class="line">            len = <span class="number">4</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (byte &gt;= <span class="number">0xE0</span>)</span><br><span class="line">            len = <span class="number">3</span>;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (byte &gt;= <span class="number">0xC0</span>)</span><br><span class="line">            len = <span class="number">2</span>;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            len = <span class="number">1</span>;</span><br><span class="line">        ch = sUtf8Data.substr(i, len);</span><br><span class="line">        vName.push_back(ch);</span><br><span class="line">    &#125;   </span><br><span class="line">    </span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">string</span> sQxName;</span><br><span class="line">    <span class="keyword">if</span> (vName.size() &lt;= <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        sQxName = vName.size() &gt; <span class="number">0</span>?(vName.front() + <span class="string">"*"</span>):sUtf8Data;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        sQxName = vName.front() + <span class="string">"**"</span> + vName.back();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> sQxName;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>[1] GBK与GB2312的区别？<br>GBK是GB2312的超集，你可以简单这样理解，GB2312编码的是简体中文，而GBK在GB2312的基础上增加了繁体字以及日语和韩语。因为GBK是在GB2312的基础上进行扩展的，所以简体中文用这两者是相同的编码。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/" rel="tag"><i class="fa fa-tag"></i> 字符编码</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/" rel="next" title="缓存设计与常见问题分析">
+      缓存设计与常见问题分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#字符编码的起源-ASCII码"><span class="nav-number">1.</span> <span class="nav-text">字符编码的起源-ASCII码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#百花齐放-多字符集"><span class="nav-number">2.</span> <span class="nav-text">百花齐放-多字符集</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#全球一统-UNICODE"><span class="nav-number">3.</span> <span class="nav-text">全球一统-UNICODE</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#UCS-2与UTF-16"><span class="nav-number">3.1.</span> <span class="nav-text">UCS-2与UTF-16</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UTF-8"><span class="nav-number">3.2.</span> <span class="nav-text">UTF-8</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题"><span class="nav-number">4.</span> <span class="nav-text">问题</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: '991475f3af4b5bc336da010dae86e305',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

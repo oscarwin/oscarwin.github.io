@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="这段时间正在学习Redis和容器相关的内容，因此想通过docker搭建一套redis主从系统来加深理解。看这篇文章可能你需要一定的docker基础，以及对redis主从和哨兵机制有所了解。 这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。 首先分别在这三台主机上安装docker，然后每台主机上启动一个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Docker搭建Redis一主两从三哨兵">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="这段时间正在学习Redis和容器相关的内容，因此想通过docker搭建一套redis主从系统来加深理解。看这篇文章可能你需要一定的docker基础，以及对redis主从和哨兵机制有所了解。 这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。 首先分别在这三台主机上安装docker，然后每台主机上启动一个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/7/12/16be65279459a7e9?w=403&h=71&f=png&s=3519">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/7/30/16c403f124eedd98?w=880&h=586&f=png&s=53121">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.146Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2019/7/12/16be65279459a7e9?w=403&h=71&f=png&s=3519">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>基于Docker搭建Redis一主两从三哨兵 | oscarwin</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于Docker搭建Redis一主两从三哨兵
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这段时间正在学习Redis和容器相关的内容，因此想通过docker搭建一套redis主从系统来加深理解。看这篇文章可能你需要一定的docker基础，以及对redis主从和哨兵机制有所了解。</p>
+<p>这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。</p>
+<p>首先分别在这三台主机上安装docker，然后每台主机上启动一个redis容器，运行redis-server服务，其中35.236.172.131作为master，另外两台机器作为slave，最后在三台主机上再分别启动一个redis容器，运行redis-sentinel。为什么还是redis容器呢？因为sentinel实际上还是一个redis-server，只不过是以sentinel模式执行，只能处理sentinel需要的一些命令。<a id="more"></a></p>
+<h2 id="安装docker"><a href="#安装docker" class="headerlink" title="安装docker"></a>安装docker</h2><p>docker的安装有很多种方法，这里就不介绍了。本次使用脚本安装docker，Debian系统脚本安装如下，其他系统可以参考Docker官网的安装方法：<a href="https://docs.docker.com/install/linux/docker-ce/debian/" target="_blank" rel="noopener">https://docs.docker.com/install/linux/docker-ce/debian/</a>。不过下面的命令在官网命令的基础上修改镜像源为阿里云，因为国内镜像往往会快一些。</p>
+<h3 id="脚本安装docker"><a href="#脚本安装docker" class="headerlink" title="脚本安装docker"></a>脚本安装docker</h3><p>在物理主机或者云虚拟主机上运行下面的命令就可以完成docker安装了，当然我是在Debian系统上，其他系统相应参考官网上的方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ curl -fsSL https:&#x2F;&#x2F;get.docker.com -o get-docker.sh</span><br><span class="line">$ sudo sh get-docker.sh --mirror Aliyun</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动docker-CE"><a href="#启动docker-CE" class="headerlink" title="启动docker CE"></a>启动docker CE</h3><p>docker是以客户端和服务器模型运行的，因此需要先运行docker的服务器，服务器以daemon的形式运行。docker CE是docker的社区版本。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ sudo systemctl enable docker</span><br><span class="line">$ sudo systemctl start docker</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证docker是否安装成功"><a href="#验证docker是否安装成功" class="headerlink" title="验证docker是否安装成功"></a>验证docker是否安装成功</h3><p>下面的这条命令是从docker的官方仓库拉取一个名为hello-world的镜像，并通过这个镜像启动一个容器。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker run hello-world</span><br></pre></td></tr></table></figure>
+<p>如果运行结果如下，出现了<code>Hello from Docker!</code>，说明docker安装成功了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ docker run hello-world</span><br><span class="line">Unable to find image &#39;hello-world:latest&#39; locally</span><br><span class="line">latest: Pulling from library&#x2F;hello-world</span><br><span class="line">1b930d010525: Pull complete </span><br><span class="line">Digest: sha256:6540fc08ee6e6b7b63468dc3317e3303aae178cb8a45ed3123180328bcc1d20f</span><br><span class="line">Status: Downloaded newer image for hello-world:latest</span><br><span class="line"></span><br><span class="line">Hello from Docker!</span><br><span class="line">This message shows that your installation appears to be working correctly.</span><br><span class="line"></span><br><span class="line">To generate this message, Docker took the following steps:</span><br><span class="line"> 1. The Docker client contacted the Docker daemon.</span><br><span class="line"> 2. The Docker daemon pulled the &quot;hello-world&quot; image from the Docker Hub.</span><br><span class="line">    (amd64)</span><br><span class="line"> 3. The Docker daemon created a new container from that image which runs the</span><br><span class="line">    executable that produces the output you are currently reading.</span><br><span class="line"> 4. The Docker daemon streamed that output to the Docker client, which sent it</span><br><span class="line">    to your terminal.</span><br><span class="line"></span><br><span class="line">To try something more ambitious, you can run an Ubuntu container with:</span><br><span class="line"> $ docker run -it ubuntu bash</span><br><span class="line"></span><br><span class="line">Share images, automate workflows, and more with a free Docker ID:</span><br><span class="line"> https:&#x2F;&#x2F;hub.docker.com&#x2F;</span><br><span class="line"></span><br><span class="line">For more examples and ideas, visit:</span><br><span class="line"> https:&#x2F;&#x2F;docs.docker.com&#x2F;get-started&#x2F;</span><br></pre></td></tr></table></figure>
+
+<h2 id="启动容器搭建主从"><a href="#启动容器搭建主从" class="headerlink" title="启动容器搭建主从"></a>启动容器搭建主从</h2><p>docker安装成功后，可以开始部署redis服务了。先从docker官方公共仓库拉取redis镜像，然后修改redis服务的配置文件，最后启动容器，启动redis服务器。在多台机器上运行redis服务器，并建立主从关系。</p>
+<p>redis的主从是实现redis集群和redis哨兵高可用的基础，redis的主从结构使从可以复制主上的数据，如果从与主之间网络断开，从会自动重连到主上。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/7/12/16be65279459a7e9?w=403&h=71&f=png&s=3519" alt=""></p>
+<h3 id="获取Redis镜像"><a href="#获取Redis镜像" class="headerlink" title="获取Redis镜像"></a>获取Redis镜像</h3><p>下面的命令会拉取最新的官方版本的redis镜像</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker pull redis</span><br></pre></td></tr></table></figure>
+<p>查看镜像</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ docker image ls</span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">redis               latest              bb0ab8a99fe6        7 days ago          95MB</span><br><span class="line">hello-world         latest              fce289e99eb9        6 months ago        1.84kB</span><br></pre></td></tr></table></figure>
+
+<h3 id="获取并修改redis配置文件"><a href="#获取并修改redis配置文件" class="headerlink" title="获取并修改redis配置文件"></a>获取并修改redis配置文件</h3><p>redis官方提供了一个配置文件样例，通过wget工具下载下来。我用的root用户，就直接下载到/root目录里了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ wget http:&#x2F;&#x2F;download.redis.io&#x2F;redis-stable&#x2F;redis.conf</span><br></pre></td></tr></table></figure>
+
+<p>打开下载下来的文件后，可以看到配置有很多。我只是搭建服务进行试验所以只修改必要的几项。如果要运用到线上，那必须所有的配置都按需求进行修改。</p>
+<p>其中redis服务器的master和slave角色使用的配置文件还会有些不同，下面分别进行说明。</p>
+<p>对于master而言，配置文件修改以下几项</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># 注释这一行，表示Redis可以接受任意ip的连接</span><br><span class="line"># bind 127.0.0.1 </span><br><span class="line"></span><br><span class="line"># 关闭保护模式</span><br><span class="line">protected-mode no </span><br><span class="line"></span><br><span class="line"># 让redis服务后台运行</span><br><span class="line">daemonize yes </span><br><span class="line"></span><br><span class="line"># 设定密码(可选，如果这里开启了密码要求，slave的配置里就要加这个密码. 只是练习配置，就不使用密码认证了)</span><br><span class="line"># requirepass masterpassword </span><br><span class="line"></span><br><span class="line"># 配置日志路径，为了便于排查问题，指定redis的日志文件目录</span><br><span class="line">logfile &quot;&#x2F;var&#x2F;log&#x2F;redis&#x2F;redis.log&quot;</span><br></pre></td></tr></table></figure>
+
+<p>对于slave而言，配置文件修改以下几项：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"># 注释这一行，表示Redis可以接受任意ip的连接</span><br><span class="line"># bind 127.0.0.1 </span><br><span class="line"></span><br><span class="line"># 关闭保护模式</span><br><span class="line">protected-mode no </span><br><span class="line"></span><br><span class="line"># 让redis服务后台运行</span><br><span class="line">daemonize yes </span><br><span class="line"></span><br><span class="line"># 设定密码(可选，如果这里开启了密码要求，slave的配置里就要加这个密码)</span><br><span class="line">requirepass masterpassword </span><br><span class="line"></span><br><span class="line"># 设定主库的密码，用于认证，如果主库开启了requirepass选项这里就必须填相应的密码</span><br><span class="line">masterauth &lt;master-password&gt;</span><br><span class="line"></span><br><span class="line"># 设定master的IP和端口号，redis配置文件中的默认端口号是6379</span><br><span class="line"># 低版本的redis这里会是slaveof，意思是一样的，因为slave是比较敏感的词汇，所以在redis后面的版本中不在使用slave的概念，取而代之的是replica</span><br><span class="line"># 将35.236.172.131做为主，其余两台机器做从。ip和端口号按照机器和配置做相应修改。</span><br><span class="line">replicaof 35.236.172.131 6379</span><br><span class="line"></span><br><span class="line"># 配置日志路径，为了便于排查问题，指定redis的日志文件目录</span><br><span class="line">logfile &quot;&#x2F;var&#x2F;log&#x2F;redis&#x2F;redis.log&quot;</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动容器"><a href="#启动容器" class="headerlink" title="启动容器"></a>启动容器</h3><p>分别在主机和从机上按照上面的方法建立好配置文件，检查无误后就可以开始启动容器了。</p>
+<p>我们在三台机器上分别将容器别名指定为<code>redis-1, redis-2, redis-3</code>，这样便于区分与说明，docker通过<code>--name</code>参数来指定容器的别名。redis-1是master上容器的别名，redis-2和redis-3是两个slave上的别名。</p>
+<p>下面以运行redis-3容器为例说明容器的启动过程。另外两台机器上的容器redis-1和redis-2操作是相同的，只是要注意master的配置文件和slave不同。不过首先要启动主服务器，也就是redis-1容器。然后再启动redis-2和redis-3。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 首先以后台模式运行容器</span><br><span class="line">$ docker run -it --name redis-3 -v &#x2F;root&#x2F;redis.conf:&#x2F;usr&#x2F;local&#x2F;etc&#x2F;redis&#x2F;redis.conf -d -p 6379:6379 redis &#x2F;bin&#x2F;bash</span><br><span class="line"># 容器成功启动后，会打印一个长串的容器ID</span><br><span class="line">a3952342094dfd5a56838cb6becb5faa7a34f1dbafb7e8c506e9bd7bb1c2951b</span><br><span class="line"># 通过ps命令查看容器的状态，可以看到redis-3已经启动</span><br><span class="line">$ docker ps</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES</span><br><span class="line">a3952342094d        redis               &quot;docker-entrypoint.s…&quot;   8 minutes ago       Up 8 minutes        0.0.0.0:6379-&gt;6379&#x2F;tcp   redis-3</span><br></pre></td></tr></table></figure>
+
+<p>上面已经启动了容器，接下来进入容器里启动redis服务器。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"># 以交互模式进入容器redis-3</span><br><span class="line">$ docker exec -it redis-3 bash</span><br><span class="line"></span><br><span class="line"># 创建日志文件目录</span><br><span class="line">$ mkdir &#x2F;var&#x2F;log&#x2F;redis&#x2F;</span><br><span class="line">$ touch &#x2F;var&#x2F;log&#x2F;redis&#x2F;redis.log</span><br><span class="line"></span><br><span class="line"># 启动redis服务器，如果没有任何输出，就说明成功了</span><br><span class="line">$ redis-server &#x2F;usr&#x2F;local&#x2F;etc&#x2F;redis&#x2F;redis.conf</span><br><span class="line"></span><br><span class="line"># 在容器里启动一个redis客户端</span><br><span class="line">$ redis-cli </span><br><span class="line"></span><br><span class="line"># 执行info命令，查看服务器状态</span><br><span class="line">127.0.0.1:6379&gt; info</span><br><span class="line">...</span><br><span class="line"># 如果是主，这里的role的值会是master，如果是从，这里的role的值会是slave</span><br><span class="line">role:slave</span><br><span class="line"># 对于slave，还要查看master_link_status这个属性值。slave上这个属性值为up就说明主从复制是OK的，否者就有问题。如果从机状态不为up，首先排查主机的端口是否被限，然后查看redis日志排查原因</span><br><span class="line">master_link_status:up</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"># 最后退出容器</span><br><span class="line">$ exit</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证主从复制"><a href="#验证主从复制" class="headerlink" title="验证主从复制"></a>验证主从复制</h3><p>主从搭建成功后，可以通过在master上写入一个key-value值，查看是否会同步到slave上，来验证主从同步是否能成功。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 以交互模式进入容器redis-1中</span><br><span class="line">$ docker exec -it redis-1 bash</span><br></pre></td></tr></table></figure>
+<p>运行一个redis-cli，向test_key写入一个值</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ redis-cli</span><br><span class="line">127.0.0.1:6379&gt; set test_key hello-world</span><br><span class="line">OK</span><br></pre></td></tr></table></figure>
+
+<p>在任意slave机器上进入容器，也运行一个redis-cli，查询这个key的值。如果能查询到这个值，且与主机上的值相同，说明主从同步成功。经测试，主动同步成功。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; get test_key </span><br><span class="line">&quot;hello-world&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="添加哨兵"><a href="#添加哨兵" class="headerlink" title="添加哨兵"></a>添加哨兵</h2><p>主从结构搭建成功了，系统的可用性变高了，但是如果主发生故障，需要人工手动切换从机为主机。这种切换工作不仅浪费人力资源，更大的影响是主从切换期间这段时间redis是无法对外提供服务的。因此，哨兵系统被开发出来了，哨兵可以在主发生故障后，自动进行故障转移，从从机里选出一台升级为主机，并持续监听着原来的主机，当原来的主机恢复后，会将其作为新主的从机。</p>
+<p>哨兵先监听主，通过对主发送info命令，获取到从的信息，然后也会监听到从。另外哨兵都会像主订阅<strong>sentinel</strong>:hello频道，当有新的哨兵加入时，会向这个频道发送一条信息，这条信息包含了该哨兵的IP和端口等信息，那么其他已经订阅了该频道的哨兵就会收到这条信息，就知道有一个新的哨兵加入。这些哨兵会与新加入和哨兵建立连接，选主是需要通过这个连接来进行投票。这个关系可以用下面这个图来描述</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/7/30/16c403f124eedd98?w=880&h=586&f=png&s=53121" alt=""></p>
+<h3 id="获取并修改sentinel配置文件"><a href="#获取并修改sentinel配置文件" class="headerlink" title="获取并修改sentinel配置文件"></a>获取并修改sentinel配置文件</h3><p>通过wget命令获取sentinel的配置文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http:&#x2F;&#x2F;download.redis.io&#x2F;redis-stable&#x2F;sentinel.conf</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件以下几项</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># 让sentinel服务后台运行</span><br><span class="line">daemonize yes </span><br><span class="line"></span><br><span class="line"># 修改日志文件的路径</span><br><span class="line">logfile &quot;&#x2F;var&#x2F;log&#x2F;redis&#x2F;sentinel.log&quot;</span><br><span class="line"></span><br><span class="line"># 修改监控的主redis服务器</span><br><span class="line"># 最后一个2表示，两台机器判定主被动下线后，就进行failover(故障转移)</span><br><span class="line">sentinel monitor mymaster 35.236.172.131 6379 2</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动容器-1"><a href="#启动容器-1" class="headerlink" title="启动容器"></a>启动容器</h3><p>与启动redis容器类似，启动一个别名为sentinel的容器</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker run -it --name sentinel -p 26379:26379 -v &#x2F;root&#x2F;sentinel.conf:&#x2F;usr&#x2F;local&#x2F;etc&#x2F;redis&#x2F;sentinel.conf -d redis &#x2F;bin&#x2F;bash</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行哨兵"><a href="#运行哨兵" class="headerlink" title="运行哨兵"></a>运行哨兵</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># 进入容器</span><br><span class="line">$ docker exec -it sentinel bash</span><br><span class="line"></span><br><span class="line"># 创建日志目录和文件</span><br><span class="line">$ mkdir &#x2F;var&#x2F;log&#x2F;redis</span><br><span class="line">$ touch &#x2F;var&#x2F;log&#x2F;redis&#x2F;sentinel.log</span><br><span class="line"></span><br><span class="line"># 启动哨兵</span><br><span class="line">redis-sentinel &#x2F;usr&#x2F;local&#x2F;etc&#x2F;redis&#x2F;sentinel.conf </span><br><span class="line"></span><br><span class="line"># 查看日志，哨兵成功监听到一主和两从的机器</span><br><span class="line">18:X 11 Jul 2019 13:25:55.416 # +monitor master mymaster 35.236.172.131 6379 quorum 2</span><br><span class="line">18:X 11 Jul 2019 13:25:55.418 * +slave slave 35.201.200.251:6379 35.201.200.251 6379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 13:25:55.421 * +slave slave 34.80.172.42:6379 34.80.172.42 6379 @ mymaster 35.236.172.131 6379</span><br></pre></td></tr></table></figure>
+
+<p>在另外两台机器上按照同样的方法在一个容器中运行sentinel，sentinel都使用相同的配置文件。</p>
+<h3 id="验证failover-故障转移"><a href="#验证failover-故障转移" class="headerlink" title="验证failover(故障转移)"></a>验证failover(故障转移)</h3><p>为了验证哨兵机制下的自动主从切换，我们将主上的redis进程kill掉。</p>
+<p>稍等几秒钟后，就有另外一台从升级为主机，实验时是第三台机器，也就是redis-3升级为了主，用info命令查询可以看到redis-3服务器的角色变成的master。说明自动主从切换成功。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; info</span><br><span class="line">...</span><br><span class="line"># Replication</span><br><span class="line">role:master</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>然后重新启动之前被kill掉的master服务器，启动后用info命令查看，可以发现其变成了redis-3的从服务器。</p>
+<p>下面这段日志，描述了35.236.172.131作为主启动，执行故障转移的master sentinel选举，执行故障转移，建立新的主从关系。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">root@4355ca3260c5:&#x2F;var&#x2F;log&#x2F;redis# cat sentinel.log </span><br><span class="line">17:X 11 Jul 2019 13:25:55.395 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo</span><br><span class="line">17:X 11 Jul 2019 13:25:55.395 # Redis version&#x3D;5.0.5, bits&#x3D;64, commit&#x3D;00000000, modified&#x3D;0, pid&#x3D;17, just started</span><br><span class="line">17:X 11 Jul 2019 13:25:55.395 # Configuration loaded</span><br><span class="line">18:X 11 Jul 2019 13:25:55.398 * Running mode&#x3D;sentinel, port&#x3D;26379.</span><br><span class="line">18:X 11 Jul 2019 13:25:55.398 # WARNING: The TCP backlog setting of 511 cannot be enforced because &#x2F;proc&#x2F;sys&#x2F;net&#x2F;core&#x2F;somaxconn is set to the lower value of 128.</span><br><span class="line">18:X 11 Jul 2019 13:25:55.416 # Sentinel ID is 7d9a7877d4cffb6fec5877f605b975e00e7953c1</span><br><span class="line">18:X 11 Jul 2019 13:25:55.416 # +monitor master mymaster 35.236.172.131 6379 quorum 2</span><br><span class="line">18:X 11 Jul 2019 13:25:55.418 * +slave slave 35.201.200.251:6379 35.201.200.251 6379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 13:25:55.421 * +slave slave 34.80.172.42:6379 34.80.172.42 6379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 13:26:25.460 # +sdown slave 35.201.200.251:6379 35.201.200.251 6379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:04:23.390 * +sentinel sentinel 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:04:25.418 * +sentinel-invalid-addr sentinel 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:04:25.418 * +sentinel sentinel 7d9a7877d4cffb6fec5877f605b975e00e7953c1 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:04:25.456 * +sentinel-address-switch master mymaster 35.236.172.131 6379 ip 172.17.0.3 port 26379 for 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3</span><br><span class="line">18:X 11 Jul 2019 14:08:34.338 * +sentinel-invalid-addr sentinel 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:08:34.338 * +sentinel sentinel 28d3c0e636fa29ac9fb5c3cc2be00432c1b0ead9 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:08:36.236 * +sentinel-address-switch master mymaster 35.236.172.131 6379 ip 172.17.0.3 port 26379 for 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3</span><br><span class="line">18:X 11 Jul 2019 14:11:12.151 # +sdown master mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:12.214 # +odown master mymaster 35.236.172.131 6379 #quorum 4&#x2F;2</span><br><span class="line">18:X 11 Jul 2019 14:11:12.214 # +new-epoch 1</span><br><span class="line">18:X 11 Jul 2019 14:11:12.214 # +try-failover master mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:12.235 # +vote-for-leader 7d9a7877d4cffb6fec5877f605b975e00e7953c1 1</span><br><span class="line">18:X 11 Jul 2019 14:11:12.235 # 7d9a7877d4cffb6fec5877f605b975e00e7953c1 voted for 7d9a7877d4cffb6fec5877f605b975e00e7953c1 1</span><br><span class="line">18:X 11 Jul 2019 14:11:12.235 # 28d3c0e636fa29ac9fb5c3cc2be00432c1b0ead9 voted for 7d9a7877d4cffb6fec5877f605b975e00e7953c1 1</span><br><span class="line">18:X 11 Jul 2019 14:11:12.235 # 09aa7d2098ad2dc52e6e07d7bc6670f00f5ff3e3 voted for 7d9a7877d4cffb6fec5877f605b975e00e7953c1 1</span><br><span class="line">18:X 11 Jul 2019 14:11:12.294 # +elected-leader master mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:12.294 # +failover-state-select-slave master mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:12.394 # -failover-abort-no-good-slave master mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:12.453 # Next failover delay: I will not start a failover before Thu Jul 11 14:17:12 2019</span><br><span class="line">18:X 11 Jul 2019 14:11:13.050 # +config-update-from sentinel 28d3c0e636fa29ac9fb5c3cc2be00432c1b0ead9 172.17.0.3 26379 @ mymaster 35.236.172.131 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:13.050 # +switch-master mymaster 35.236.172.131 6379 34.80.172.42 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:13.050 * +slave slave 35.201.200.251:6379 35.201.200.251 6379 @ mymaster 34.80.172.42 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:13.050 * +slave slave 35.236.172.131:6379 35.236.172.131 6379 @ mymaster 34.80.172.42 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:43.077 # +sdown slave 35.236.172.131:6379 35.236.172.131 6379 @ mymaster 34.80.172.42 6379</span><br><span class="line">18:X 11 Jul 2019 14:11:43.077 # +sdown slave 35.201.200.251:6379 35.201.200.251 6379 @ mymaster 34.80.172.42 6379</span><br><span class="line">18:X 12 Jul 2019 01:54:05.142 # -sdown slave 35.236.172.131:6379 35.236.172.131 6379 @ mymaster 34.80.172.42 6379</span><br><span class="line">18:X 12 Jul 2019 01:54:15.087 * +convert-to-slave slave 35.236.172.131:6379 35.236.172.131 6379 @ mymaster 34.80.172.42 6379</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>redis通过主从复制来实现高可用，但是发生故障时需要人工进行主从切换，效率低下。哨兵机制实现了redis主从的自动切换，提高了redis集群的可用性，提高了redis集群的故障转移效率。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"><i class="fa fa-tag"></i> docker</a>
+              <a href="/tags/redis/" rel="tag"><i class="fa fa-tag"></i> redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/%E5%9F%BA%E4%BA%8EREDIS%E5%AE%9E%E7%8E%B0%E5%BB%B6%E6%97%B6%E4%BB%BB%E5%8A%A1/" rel="prev" title="基于Redis实现延时任务">
+      <i class="fa fa-chevron-left"></i> 基于Redis实现延时任务
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/" rel="next" title="MySQL索引">
+      MySQL索引 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#安装docker"><span class="nav-number">1.</span> <span class="nav-text">安装docker</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#脚本安装docker"><span class="nav-number">1.1.</span> <span class="nav-text">脚本安装docker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#启动docker-CE"><span class="nav-number">1.2.</span> <span class="nav-text">启动docker CE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证docker是否安装成功"><span class="nav-number">1.3.</span> <span class="nav-text">验证docker是否安装成功</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动容器搭建主从"><span class="nav-number">2.</span> <span class="nav-text">启动容器搭建主从</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获取Redis镜像"><span class="nav-number">2.1.</span> <span class="nav-text">获取Redis镜像</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取并修改redis配置文件"><span class="nav-number">2.2.</span> <span class="nav-text">获取并修改redis配置文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#启动容器"><span class="nav-number">2.3.</span> <span class="nav-text">启动容器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证主从复制"><span class="nav-number">2.4.</span> <span class="nav-text">验证主从复制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#添加哨兵"><span class="nav-number">3.</span> <span class="nav-text">添加哨兵</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获取并修改sentinel配置文件"><span class="nav-number">3.1.</span> <span class="nav-text">获取并修改sentinel配置文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#启动容器-1"><span class="nav-number">3.2.</span> <span class="nav-text">启动容器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#运行哨兵"><span class="nav-number">3.3.</span> <span class="nav-text">运行哨兵</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证failover-故障转移"><span class="nav-number">3.4.</span> <span class="nav-text">验证failover(故障转移)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: '66789f7ed01bf4d0330ceb5bb3d4c0a1',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
