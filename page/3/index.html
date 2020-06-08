@@ -72,6 +72,15 @@
   
 
 
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?974678343a9575361c8a64be1b8e960c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
 
 
 
@@ -182,7 +191,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -196,7 +205,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/" class="post-title-link" itemprop="url">基于Docker搭建Redis一主两从三哨兵</a>
+            <a href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">典型服务器模式原理分析与实践</a>
         </h1>
 
         <div class="post-meta">
@@ -228,19 +237,12 @@
             </span>
 
           
-            <span id="/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/" class="post-meta-item leancloud_visitors" data-flag-title="基于Docker搭建Redis一主两从三哨兵" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
             <span class="post-meta-item" title="本文字数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-file-word-o"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>11k</span>
+              <span>5.2k</span>
             </span>
 
         </div>
@@ -252,207 +254,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>这段时间正在学习Redis和容器相关的内容，因此想通过docker搭建一套redis主从系统来加深理解。看这篇文章可能你需要一定的docker基础，以及对redis主从和哨兵机制有所了解。</p>
-<p>这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。</p>
-<p>首先分别在这三台主机上安装docker，然后每台主机上启动一个redis容器，运行redis-server服务，其中35.236.172.131作为master，另外两台机器作为slave，最后在三台主机上再分别启动一个redis容器，运行redis-sentinel。为什么还是redis容器呢？因为sentinel实际上还是一个redis-server，只不过是以sentinel模式执行，只能处理sentinel需要的一些命令。
+          <p>本文作为自己学习网络编程的总结笔记。打算分析一下主流服务器模式的优缺点，及适用场景，每种模型实现一个回射服务器。客户端用同一个版本，服务端针对每种模型编写对应的回射服务器。</p>
+<p>本文所有代码放在：<a href="https://user-gold-cdn.xitu.io/2019/3/22/169a5f43ccce37a7" target="_blank" rel="noopener">https://github.com/oscarwin/multi-echo-server</a></p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">缓存设计与常见问题分析</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-            <span id="/2019/12/20/%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/" class="post-meta-item leancloud_visitors" data-flag-title="缓存设计与常见问题分析" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-file-word-o"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>5.7k</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>对于数据库的CRUD操作而言，当并发量较大时会出现读或者写的瓶颈。对于大多数场景而言，都是读多写少，因此读更容易成为数据库的瓶颈。而缓存就是为了解决读的问题而出现的。缓存的数据存储在内存中，因此性能很高。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/" class="post-title-link" itemprop="url">我所理解的docker</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-            <span id="/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/" class="post-meta-item leancloud_visitors" data-flag-title="我所理解的docker" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-file-word-o"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.6k</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="docker是什么"><a href="#docker是什么" class="headerlink" title="docker是什么"></a>docker是什么</h2><p>docker是容器领域应用最为广泛的开源软件。docker的中文意思中有集装箱的意思，正如其名，容器就像是一个集装箱，在这个集装箱里你可以放任何东西，集装箱与集装箱之间互不干涉。只不过这个集装箱里装的是运行的软件而已。这个虚拟机的特点有很多相似的地方。</p>
-<p>但是docker与虚拟机有很大的区别。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -522,13 +328,6 @@
             </span>
 
           
-            <span id="/2019/12/20/%E8%81%8A%E8%81%8A%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/" class="post-meta-item leancloud_visitors" data-flag-title="聊聊字符编码" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
             <span class="post-meta-item" title="本文字数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-file-word-o"></i>
@@ -550,6 +349,189 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/12/20/%E8%81%8A%E8%81%8A%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/" class="post-title-link" itemprop="url">我所理解的docker</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.6k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="docker是什么"><a href="#docker是什么" class="headerlink" title="docker是什么"></a>docker是什么</h2><p>docker是容器领域应用最为广泛的开源软件。docker的中文意思中有集装箱的意思，正如其名，容器就像是一个集装箱，在这个集装箱里你可以放任何东西，集装箱与集装箱之间互不干涉。只不过这个集装箱里装的是运行的软件而已。这个虚拟机的特点有很多相似的地方。</p>
+<p>但是docker与虚拟机有很大的区别。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/%E6%88%91%E6%89%80%E7%90%86%E8%A7%A3%E7%9A%84docker/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/" class="post-title-link" itemprop="url">基于Docker搭建Redis一主两从三哨兵</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-07 09:20:21" itemprop="dateModified" datetime="2020-06-07T09:20:21+08:00">2020-06-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>这段时间正在学习Redis和容器相关的内容，因此想通过docker搭建一套redis主从系统来加深理解。看这篇文章可能你需要一定的docker基础，以及对redis主从和哨兵机制有所了解。</p>
+<p>这次实验准备了三台云主机，系统为Debian，ip分别为：35.236.172.131 ，35.201.200.251，34.80.172.42。</p>
+<p>首先分别在这三台主机上安装docker，然后每台主机上启动一个redis容器，运行redis-server服务，其中35.236.172.131作为master，另外两台机器作为slave，最后在三台主机上再分别启动一个redis容器，运行redis-sentinel。为什么还是redis容器呢？因为sentinel实际上还是一个redis-server，只不过是以sentinel模式执行，只能处理sentinel需要的一些命令。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/%E5%9F%BA%E4%BA%8EDocker%E6%90%AD%E5%BB%BARedis-%E4%B8%BB%E4%B8%A4%E4%BB%8E%E4%B8%89%E5%93%A8%E5%85%B5/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -619,13 +601,6 @@
             </span>
 
           
-            <span id="/2019/12/20/%E5%9F%BA%E4%BA%8EREDIS%E5%AE%9E%E7%8E%B0%E5%BB%B6%E6%97%B6%E4%BB%BB%E5%8A%A1/" class="post-meta-item leancloud_visitors" data-flag-title="基于Redis实现延时任务" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
             <span class="post-meta-item" title="本文字数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-file-word-o"></i>
@@ -763,6 +738,12 @@
       <span class="links-of-author-item">
         <a href="mailto:ltengpeter@gmail.com" title="E-Mail → mailto:ltengpeter@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
       </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/587bb8a25c497d0058a5c7c5/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;587bb8a25c497d0058a5c7c5&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-inbox"></i>掘金</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.douban.com/people/67048261/" title="豆瓣 → https:&#x2F;&#x2F;www.douban.com&#x2F;people&#x2F;67048261&#x2F;" rel="noopener" target="_blank"><i class="fa fa-fw fa-inbox"></i>豆瓣</a>
+      </span>
   </div>
 
 
@@ -803,93 +784,6 @@
 
 
 
-  <script>
-  function leancloudSelector(url) {
-    url = encodeURI(url);
-    return document.getElementById(url).querySelector('.leancloud-visitors-count');
-  }
-  if (CONFIG.page.isPost) {
-    function addCount(Counter) {
-      var visitors = document.querySelector('.leancloud_visitors');
-      var url = decodeURI(visitors.getAttribute('id'));
-      var title = visitors.getAttribute('data-flag-title');
-
-      Counter('get', `/classes/Counter?where=${JSON.stringify({ url })}`)
-        .then(response => response.json())
-        .then(({ results }) => {
-          if (results.length > 0) {
-            var counter = results[0];
-              leancloudSelector(url).innerText = counter.time + 1;
-            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
-              .then(response => response.json())
-              .catch(error => {
-                console.error('Failed to save visitor count', error);
-              })
-          } else {
-              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
-              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
-            
-          }
-        })
-        .catch(error => {
-          console.error('LeanCloud Counter Error', error);
-        });
-    }
-  } else {
-    function showTime(Counter) {
-      var visitors = document.querySelectorAll('.leancloud_visitors');
-      var entries = [...visitors].map(element => {
-        return decodeURI(element.getAttribute('id'));
-      });
-
-      Counter('get', `/classes/Counter?where=${JSON.stringify({ url: { '$in': entries } })}`)
-        .then(response => response.json())
-        .then(({ results }) => {
-          if (results.length === 0) {
-            document.querySelectorAll('.leancloud_visitors .leancloud-visitors-count').forEach(element => {
-              element.innerText = 0;
-            });
-            return;
-          }
-          for (let item of results) {
-            let { url, time } = item;
-            leancloudSelector(url).innerText = time;
-          }
-          for (let url of entries) {
-            var element = leancloudSelector(url);
-            if (element.innerText == '') {
-              element.innerText = 0;
-            }
-          }
-        })
-        .catch(error => {
-          console.error('LeanCloud Counter Error', error);
-        });
-    }
-  }
-
-  fetch('https://app-router.leancloud.cn/2/route?appId=p5vI8bMriFdBL08LuwR0m6ps-gzGzoHsz')
-    .then(response => response.json())
-    .then(({ api_server }) => {
-      var Counter = (method, url, data) => {
-        return fetch(`https://${api_server}/1.1${url}`, {
-          method: method,
-          headers: {
-            'X-LC-Id': 'p5vI8bMriFdBL08LuwR0m6ps-gzGzoHsz',
-            'X-LC-Key': 'KWtDeAwcy04MRk60oCPKMmPq',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        });
-      };
-      if (CONFIG.page.isPost) {
-        if (CONFIG.hostname !== location.hostname) return;
-        addCount(Counter);
-      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
-        showTime(Counter);
-      }
-    });
-  </script>
 
 
       </div>
