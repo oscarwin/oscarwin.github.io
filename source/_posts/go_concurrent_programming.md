@@ -140,3 +140,7 @@ func main() {
 ```
 
 在 go 语言里实现并发程序最佳的实践是通过 WaitGroup 来实现。WaitGroup 通过标识事件发生与结束来标记事件的状态，类似于信号量。通过 Add 方法将计数增加，Add 函数中的参数表示增加的计数数量，通过 Done 函数将计数减一，最后 Wait 函数等待计数变为 0，表示所有的的事件都结束了。
+
+>本文作者：ltengpeter@gmail.com
+>本文链接：https://oscarwin.github.io/2020/01/29/go_concurrent_programming
+>版权声明：本博客所有文章除特别声明外，均采用[by-nc-sa 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)许可协议。转载请注明原文出处！

@@ -183,6 +183,8 @@ site_state: true
 social:
   GitHub: https://github.com/oscarwin || github
   E-Mail: mailto:ltengpeter@gmail.com || envelope
+  掘金: https://juejin.im/user/587bb8a25c497d0058a5c7c5/posts || inbox
+  豆瓣: https://www.douban.com/people/67048261/ || inbox
   #Weibo: https://weibo.com/yourname || weibo
   #Google: https://plus.google.com/yourname || google
   #Twitter: https://twitter.com/yourname || twitter
@@ -197,6 +199,8 @@ social_icons:
   enable: true
   icons_only: false
   transition: false
+  掘金: inbox
+  豆瓣: inbox
 
 # Blog rolls
 links_settings:
@@ -685,7 +689,7 @@ google_analytics:
   only_pageview: false
 
 # Baidu Analytics
-baidu_analytics: # <app_id>
+baidu_analytics: 974678343a9575361c8a64be1b8e960c # <app_id>
 
 # Growingio Analytics
 growingio_analytics: # <project_id>
@@ -698,7 +702,7 @@ cnzz_siteid:
 # AppID and AppKey are recommended to be the same as valine's for counter compatibility.
 # Do not enable both `valine.visitor` and `leancloud_visitors`.
 leancloud_visitors:
-  enable: true
+  enable: false
   app_id: p5vI8bMriFdBL08LuwR0m6ps-gzGzoHsz # <app_id>
   app_key: KWtDeAwcy04MRk60oCPKMmPq # <app_key>
   # Dependencies: https://github.com/theme-next/hexo-leancloud-counter-security
