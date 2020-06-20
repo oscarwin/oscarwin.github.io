@@ -191,7 +191,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/Linux%E6%97%B6%E9%97%B4%E7%9A%84%E8%8E%B7%E5%8F%96%E5%92%8C%E4%BD%BF%E7%94%A8/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/create_a_delay_queue_by_redis/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -205,7 +205,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/Linux%E6%97%B6%E9%97%B4%E7%9A%84%E8%8E%B7%E5%8F%96%E5%92%8C%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">Linux上时间的获取和使用</a>
+            <a href="/2019/12/20/create_a_delay_queue_by_redis/" class="post-title-link" itemprop="url">基于Redis实现延时任务</a>
         </h1>
 
         <div class="post-meta">
@@ -240,240 +240,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>Linux系统时间有两种：日历时间和进程时间。</p>
-<p>（1）日历时间。该值是自协调世界时(UTC)1970年1月1日00:00:00这个特定时间以来所经过的秒数累计值。基本数据类型用<code>time_t</code>保存。最后通过转换才能得到我们平时所看到的24小时制或者12小时间制的时间。</p>
-<p>（2）进程时间。也被称为CPU时间，用以度量进程使用的中央处理器资源。进程时间以时钟滴答计算。
+          <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/Linux%E6%97%B6%E9%97%B4%E7%9A%84%E8%8E%B7%E5%8F%96%E5%92%8C%E4%BD%BF%E7%94%A8/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/" class="post-title-link" itemprop="url">Libevent源码解析-事件循环</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>最近阅读了 libevent 的源码，写一篇文章来总结自己学习到知识。使用libevent应该优先选用最新的稳定版本，而阅读源码为了降低难度，我选择了1.4的版本，也就是patches-1.4分支。读这篇文章需要 Unix 网络编程的基础，知道 reactor 模式，如果对此还有疑问可以看我这篇文章<a href="https://github.com/oscarwin/blog/blob/master/典型服务器模式原理分析与实践" target="_blank" rel="noopener">典型服务器模式原理分析与实践</a>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/Libevent%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">MySQL用户权限管理</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在MySQL中用户数据放在mysql库的user表里，在该表中保存用用户的用户名，密码和权限信息。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E4%B8%80%E6%9D%A1%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E6%80%8E%E6%A0%B7%E5%AE%9E%E7%8E%B0%E7%9A%84/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E7%9A%84%E4%B8%80%E6%9D%A1%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E6%80%8E%E6%A0%B7%E5%AE%9E%E7%8E%B0%E7%9A%84/" class="post-title-link" itemprop="url">MySQL的一条查询和更新语句是怎样实现的</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在后端技术栈中，MySQL 是最重要的一个技术栈之一，在工作中用的非常多，而且在面试中考察的也非常多。而想要深入的了解 MySQL，首先要了解 MySQL 的架构以及 SQL 语句是如何被执行的，了解了 MySQL 里语句的执行过程对 MySQL 的索引、锁等的理解会容易的多。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%9A%84%E4%B8%80%E6%9D%A1%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E6%80%8E%E6%A0%B7%E5%AE%9E%E7%8E%B0%E7%9A%84/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/create_a_delay_queue_by_redis/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -573,7 +343,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/Linux%E7%94%A8%E6%88%B7%E7%A9%BA%E9%97%B4%E5%92%8C%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E9%94%81/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -587,7 +357,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/Linux%E7%94%A8%E6%88%B7%E7%A9%BA%E9%97%B4%E5%92%8C%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">Linux用户空间的内存管理</a>
+            <a href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/" class="post-title-link" itemprop="url">MySQL的锁</a>
         </h1>
 
         <div class="post-meta">
@@ -622,86 +392,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很多页，比如每页是4k的话，4G的虚拟内存就可以分成1048576页。虚拟内存的页通过一张映射关系表与实际物理内存的页建立对应关系，如下图所示。
+          <h1 id="MySQL-的锁，看这篇就够了"><a href="#MySQL-的锁，看这篇就够了" class="headerlink" title="MySQL 的锁，看这篇就够了"></a>MySQL 的锁，看这篇就够了</h1><p>MySQL里有非常多锁的概念，经常可以听到的有：乐观锁、悲观锁、行锁、表锁、Gap锁（间隙锁）、MDL锁（元数据锁）、意向锁、读锁、写锁、共享锁、排它锁。这么锁一听就让人头大，于是去看一些博客，有些讲乐观锁、悲观锁，有些在讲读锁、写锁，于是乐观锁和悲观锁好像理解了，读锁写锁好像也理解了，但是我任然不知道怎么用，也不知道乐观锁与读锁写锁有没有什么关系？再看了很多文章后，逐渐弄懂了它们之间的关系，于是写下这篇文章来梳理思路。能力有限，难免有误，请酌情参考。
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/Linux%E7%94%A8%E6%88%B7%E7%A9%BA%E9%97%B4%E5%92%8C%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E5%B8%B8%E7%94%A8%E8%AF%AD%E6%B3%95%E6%93%8D%E4%BD%9C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E5%B8%B8%E7%94%A8%E8%AF%AD%E6%B3%95%E6%93%8D%E4%BD%9C/" class="post-title-link" itemprop="url">MySQL常用语法说明</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>数据库的操作可以分为两大类，表数据变更(DML)和表结构变更(DDL)。表数据变更就是增、删、改、查。表结构变更就是创建数据表，修改表结构等。接下来主要从这两方面来总结MySQL常用的操作语法。MySQL里对语法的关键词不敏感，因此本文中存在大小写混用的情况。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E5%B8%B8%E7%94%A8%E8%AF%AD%E6%B3%95%E6%93%8D%E4%BD%9C/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -801,7 +495,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E9%94%81/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/introduction_of_character_encoding/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -815,7 +509,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/" class="post-title-link" itemprop="url">MySQL的锁</a>
+            <a href="/2019/12/20/introduction_of_character_encoding/" class="post-title-link" itemprop="url">聊聊字符编码</a>
         </h1>
 
         <div class="post-meta">
@@ -850,10 +544,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="MySQL-的锁，看这篇就够了"><a href="#MySQL-的锁，看这篇就够了" class="headerlink" title="MySQL 的锁，看这篇就够了"></a>MySQL 的锁，看这篇就够了</h1><p>MySQL里有非常多锁的概念，经常可以听到的有：乐观锁、悲观锁、行锁、表锁、Gap锁（间隙锁）、MDL锁（元数据锁）、意向锁、读锁、写锁、共享锁、排它锁。这么锁一听就让人头大，于是去看一些博客，有些讲乐观锁、悲观锁，有些在讲读锁、写锁，于是乐观锁和悲观锁好像理解了，读锁写锁好像也理解了，但是我任然不知道怎么用，也不知道乐观锁与读锁写锁有没有什么关系？再看了很多文章后，逐渐弄懂了它们之间的关系，于是写下这篇文章来梳理思路。能力有限，难免有误，请酌情参考。
+          <p>你是否有过这样的经历，文件在别人电脑上看着好好的，但是拷贝到自己的电脑上就发现乱码了。或者作为程序员的你，打开别人的代码时，发现中文注释乱码了，而代码缺一点毛病都没有。我曾经也被这些问题困扰许久，虽然很多时候转换一下字符编码问题就解决了，但是背后的原因却一直缕不顺。因此，想借这篇文章，尽可能把这件事情给说清楚。
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/introduction_of_character_encoding/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -877,7 +571,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/introduction_of_zookeeper/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -891,7 +585,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="post-title-link" itemprop="url">zookeeper介绍与环境搭建</a>
+            <a href="/2019/12/20/introduction_of_zookeeper/" class="post-title-link" itemprop="url">zookeeper介绍与环境搭建</a>
         </h1>
 
         <div class="post-meta">
@@ -929,7 +623,313 @@
           <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>zookeeper是一个分布式服务框架，是Apache Hadoop 的一个子项目。zookeeper 之所以会出现，是因为在分布式系统中经常需要依赖一些公共的东西(比如配置文件)，但是提供这个服务的系统本身又不能是单点，因此就出现了 zookeeper 来解决这种场景的问题。目前主要用来解决分布式应用中经常遇到的一些数据管理问题，如：统一命名服务、状态同步服务、集群管理、分布式应用配置项的管理等。
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/zookeeper%E4%BB%8B%E7%BB%8D%E4%B8%8E%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/introduction_of_zookeeper/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/memory_management_of_linux/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/memory_management_of_linux/" class="post-title-link" itemprop="url">Linux用户空间的内存管理</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很多页，比如每页是4k的话，4G的虚拟内存就可以分成1048576页。虚拟内存的页通过一张映射关系表与实际物理内存的页建立对应关系，如下图所示。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/memory_management_of_linux/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/source_analysis_to_buffer_of_libevent/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/source_analysis_to_buffer_of_libevent/" class="post-title-link" itemprop="url">Libevent源码解析-evbuffer</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在 <a href="">Libevent 源码解析-事件循环</a> 一文中已经介绍了事件循环的主要逻辑，这篇文章再聊一下 libevent 的另一个核心——输入输出缓冲区。对于每一个通过 accept 连接的套接字，无非对其就是两种操作，一个是向套接字写数据，一个是从套接字读数据，对应就是读事件和写事件。libevent 为每个文件描述符就建立了一个输入缓冲区和一个输出缓冲区，分别用来读数据和写数据。缓冲区的结构被定义 evbuffer。然后用另一个结构体来管理这两个缓冲区，这个结构体就是 bufferevent。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/source_analysis_to_buffer_of_libevent/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/time_of_linux/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/time_of_linux/" class="post-title-link" itemprop="url">Linux上时间的获取和使用</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Linux系统时间有两种：日历时间和进程时间。</p>
+<p>（1）日历时间。该值是自协调世界时(UTC)1970年1月1日00:00:00这个特定时间以来所经过的秒数累计值。基本数据类型用<code>time_t</code>保存。最后通过转换才能得到我们平时所看到的24小时制或者12小时间制的时间。</p>
+<p>（2）进程时间。也被称为CPU时间，用以度量进程使用的中央处理器资源。进程时间以时钟滴答计算。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/time_of_linux/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/source_anlysis_to_event_of_libevent/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/source_anlysis_to_event_of_libevent/" class="post-title-link" itemprop="url">Libevent源码解析-事件循环</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>最近阅读了 libevent 的源码，写一篇文章来总结自己学习到知识。使用libevent应该优先选用最新的稳定版本，而阅读源码为了降低难度，我选择了1.4的版本，也就是patches-1.4分支。读这篇文章需要 Unix 网络编程的基础，知道 reactor 模式，如果对此还有疑问可以看我这篇文章<a href="https://github.com/oscarwin/blog/blob/master/典型服务器模式原理分析与实践" target="_blank" rel="noopener">典型服务器模式原理分析与实践</a>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/source_anlysis_to_event_of_libevent/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1021,7 +1021,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-count">21</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

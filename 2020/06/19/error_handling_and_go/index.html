@@ -54,7 +54,7 @@
 <meta property="og:description" content="在使用 Go 语言编写应用程序时，会调用内建函数或者进行远程 RPC 调用，调用这些函数时可能会返回错误。Go 语言里没有使用 try…catch 这类机制，而是使用 error 来表示错误。以 os.Open 函数为例，当打开文件出错时会返回一次错误。 1func Open(name string) (file *File, err error)  对于这种错误，典型的处理方式是判断是否发生错误">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2020-06-19T03:28:43.000Z">
-<meta property="article:modified_time" content="2020-06-19T03:31:55.431Z">
+<meta property="article:modified_time" content="2020-06-20T06:59:27.130Z">
 <meta property="article:author" content="oscarwin">
 <meta property="article:tag" content="go">
 <meta name="twitter:card" content="summary">
@@ -329,6 +329,9 @@
 <li>不处理错误时，无需检查和打印错误的信息，处理错误时，打印出完整的错误调用栈信息</li>
 </ol>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://blog.golang.org/error-handling-and-go" target="_blank" rel="noopener">error-handling-and-go</a><br>[2] <a href="https://dave.cheney.net/paste/gocon-spring-2016.pdf" target="_blank" rel="noopener">gocon-spring-2016</a><br>[3] <a href="https://ethancai.github.io/2017/12/29/Error-Handling-in-Go/" target="_blank" rel="noopener">Go语言中的错误处理</a><br>[4] <a href="https://pkg.go.dev/github.com/pkg/errors?tab=doc" target="_blank" rel="noopener">pkg/errors</a></p>
+<blockquote>
+<p>本文作者：<a href="mailto:ltengpeter@gmail.com">ltengpeter@gmail.com</a><br>本文链接：<a href="https://oscarwin.github.io/2020/06/19/error_handling_and_go/" target="_blank" rel="noopener">https://oscarwin.github.io/2020/06/19/error_handling_and_go/</a><br>版权声明：本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">by-nc-sa 4.0</a>许可协议。转载请注明原文出处！</p>
+</blockquote>
 
     </div>
 
@@ -348,8 +351,8 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/06/14/test/" rel="prev" title="test">
-      <i class="fa fa-chevron-left"></i> test
+    <a href="/2020/05/28/load_balance/" rel="prev" title="负载均衡算法">
+      <i class="fa fa-chevron-left"></i> 负载均衡算法
     </a></div>
       <div class="post-nav-item"></div>
     </div>
@@ -428,7 +431,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-count">21</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/avartar_32X32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/avartar_16X16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic|Noto Serif SC:300,300italic,400,400italic,700,700italic|Monaco:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('http://yoursite.com').hostname,
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="虚拟内存每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux用户空间的内存管理">
+<meta property="og:url" content="http://yoursite.com/2019/12/20/memory_management_of_linux/index.html">
+<meta property="og:site_name" content="oscarwin">
+<meta property="og:description" content="虚拟内存每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2018/9/25/16610d7213771ae3?w=630&h=444&f=png&s=19910">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2018/9/25/1661105a95da211a?w=1065&h=614&f=jpeg&s=81078">
+<meta property="article:published_time" content="2019-12-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-07T01:20:21.151Z">
+<meta property="article:author" content="oscarwin">
+<meta property="article:tag" content="操作系统">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2018/9/25/16610d7213771ae3?w=630&h=444&f=png&s=19910">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/20/memory_management_of_linux/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Linux用户空间的内存管理 | oscarwin</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?974678343a9575361c8a64be1b8e960c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">oscarwin</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>目录</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/memory_management_of_linux/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux用户空间的内存管理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很多页，比如每页是4k的话，4G的虚拟内存就可以分成1048576页。虚拟内存的页通过一张映射关系表与实际物理内存的页建立对应关系，如下图所示。<a id="more"></a></p>
+<p><img src="https://user-gold-cdn.xitu.io/2018/9/25/16610d7213771ae3?w=630&h=444&f=png&s=19910" alt=" 图1 "></p>
+<p>4G的虚拟地址空间并非都被使用，很少有程序会用满虚拟地址空间，对于使用了的虚拟地址也并不是全部都映射到物理内存。实际上只有一部分映射到物理内存，一部分映射到磁盘的交换区(swap分区)，这样就大大减少了单个程序对物理内存的占用。</p>
+<p>进程访问虚拟地址空间的某个地址的过程是这样的：进程访问某个地址，首先根据这个地址计算得到分页，然后查询映射关系表，如果该分页映射到了物理内存帧上，则从物理内存中的数据取出返回；如果该分页没有映射到物理内存帧上，则将该分页的数据从磁盘加载到内存中，并更新映射关系表。之所以可以采用这种方式来设计有两个前提原因：</p>
+<p>（1）刚被访问过的数据，很有可能被再次访问；</p>
+<p>（2）二八原则——80%的时间都在访问20%的数据；</p>
+<h2 id="Linux内存的分布"><a href="#Linux内存的分布" class="headerlink" title="Linux内存的分布"></a>Linux内存的分布</h2><p>Linux的内存管理将这4GB的地址分为两个部分，一部分是内核空间的内存，一部分是用户空间的内存，内核空间占据3G-4G范围的地址，用户空间占据0G-3G范围的地址。内核空间是操作系统内核使用内存，用户空间就是运行在操作系统上的程序可以使用的内存。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2018/9/25/1661105a95da211a?w=1065&h=614&f=jpeg&s=81078" alt=""></p>
+<h3 id="Linux内核空间"><a href="#Linux内核空间" class="headerlink" title="Linux内核空间"></a>Linux内核空间</h3><p>Linux内核空间是Linux内核使用的地址空间，Linux内核总是驻留在内存中，用户级进程不能访问内核的地址空间。之前所提到的虚拟内存的页表与物理内存的映射关系表就保存在内核的地址空间里。内核空间的内存分配非常复杂，本文主要讨论用户空间的内存分配。</p>
+<h3 id="Linux用户空间"><a href="#Linux用户空间" class="headerlink" title="Linux用户空间"></a>Linux用户空间</h3><p>Linux用户地址空间从低位到高位的顺序可以分为：文本段(Text Segment)、初始化数据段(Data Segment)、未初始化数据段(Bss Segment)、堆(Heap)、栈(Stack)和环境变量区(Environment variables)</p>
+<p><strong>文本段</strong></p>
+<p>用户空间的最低位是文本段，包含了程序运行的机器码。文本段具有只读属性，防止进程意外修改了指令导致程序出错。而且对于多进程的程序，可以共享同一份程序代码，这样减少了对物理内存的占用。</p>
+<p>但是文本段并不是从0x0000 0000开始的，而是从0x0804 8000开始。0x0804 8000以下的地址是保留区，进程是不能去访问该地址段的数据，因此C语言中将为空的指针指向0。</p>
+<p><strong>初始化数据段</strong></p>
+<p>文本段上面就是初始化的数据段，数据段包含显示初始化的全局变量和静态变量。当程序被加载到内存中时，从可执行文件中读取这些数据的值，并加载到内存。因此，可执行文件中需要保存这些变量的值。</p>
+<p><strong>Bss</strong></p>
+<p>Bss段包含未初始化的全局变量和静态变量，还包含显示初始化为0的全局变量(根据编译器的实现)。当程序被加载到内存中时，这一段内存就会被初始化为0。可执行文件中只需要保存这一段内存的起始地址就行，因此减小了可执行文件的大小。</p>
+<p><strong>堆</strong></p>
+<p>堆从下自上增长(根据实现)，用于动态分配内存。堆的顶端成为program break，可以通过brk和sbrk函数调整堆顶的位置。c语言通过malloc函数实现动态内存分配，通过free释放分配的内存，后面会详细描述这两个函数的实现。堆上的内存通过一个双向链表进行维护，链表的每个节点保存这块内存的大小是否可用等信息。在堆上分配内存可能会导致以下问题：<br>（1）分配的内存，没有释放，就会导致内存泄漏；<br>（2）频繁的分配小块的内存有可能导致堆上都是剩余的小块的内存，这称为内存碎片；</p>
+<p><strong>栈</strong></p>
+<p>栈是一个动态增长和收缩的段，栈是自顶向下增长。栈由栈帧组成，每调用一个函数，系统会为每个当前调用的函数分配一个栈帧，栈帧从存储了参数的实参，以及函数中使用的局部变量，当函数返回时，该函数的栈帧就会弹出，函数中的局部变量因此也就被销毁了。</p>
+<p><strong>环境变量</strong></p>
+<p>在栈上面还有一小段空间，这段空间里保存的是环境变量和命令行参数，环境变量和命令行参数都是指向字符串的数组argv和environ。</p>
+<h3 id="malloc和free实现"><a href="#malloc和free实现" class="headerlink" title="malloc和free实现"></a>malloc和free实现</h3><p>动态内存的分配是通过维护一个双向链表来实现，每个节点保存该内存块的大小的使用情况。malloc的分配有多种算法，比如首次适配原则，最优适配原则等。我们这里采用首次适配原则。实际上free函数，当堆顶有大块的内存时，会通过sbrk函数降低堆顶的地址，我们这里并不做处理。</p>
+<p>malloc和free函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* my_malloc.h */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> _MY_MALLOC_H_</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _MY_MALLOC_H_</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdbool.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//保存每个内存块的信息</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">MEM_CONTROL_BLOCK_</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> uiBlockSize;      <span class="comment">//当前块的大小</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> uiPrevBlockSize;  <span class="comment">//前一个内存块的大小</span></span><br><span class="line">    <span class="keyword">bool</span> bIsAvalible;              <span class="comment">//该内存块是否已经被分配内存</span></span><br><span class="line">&#125; MemControlBlock;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> INIT_BLOCK_SIZE        (0x21000)          <span class="comment">//初始化堆的大小</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MEM_CONTROL_BLOCK_SIZE (sizeof(MemControlBlock))</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span>* g_pMallocStartAddr;     <span class="comment">//维护堆底地址</span></span><br><span class="line"><span class="keyword">void</span>* g_pMallocEndAddr;       <span class="comment">//维护堆顶地址</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//初始化堆段</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">malloc_init</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    g_pMallocStartAddr = sbrk(INIT_BLOCK_SIZE);</span><br><span class="line">    g_pMallocEndAddr = g_pMallocStartAddr + INIT_BLOCK_SIZE;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//初始化时堆只有一个内存块</span></span><br><span class="line">    MemControlBlock* pFirstBlock;</span><br><span class="line">    pFirstBlock = (MemControlBlock*)g_pMallocStartAddr;</span><br><span class="line">    pFirstBlock-&gt;bIsAvalible = <span class="number">1</span>;</span><br><span class="line">    pFirstBlock-&gt;uiBlockSize = INIT_BLOCK_SIZE;</span><br><span class="line">    pFirstBlock-&gt;uiPrevBlockSize = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span>* <span class="title">my_malloc</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> uiMallocSize)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">bool</span> bIsInit = <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span>(!bIsInit)</span><br><span class="line">    &#123;</span><br><span class="line">        malloc_init();</span><br><span class="line">        bIsInit = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span>* pCurAddr = g_pMallocStartAddr;</span><br><span class="line">    MemControlBlock* pCurBlock = <span class="literal">NULL</span>;</span><br><span class="line">    MemControlBlock* pLeaveBlock = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">void</span>* pRetAddr = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//判断是否到了堆顶</span></span><br><span class="line">    <span class="keyword">while</span> (pCurAddr &lt; g_pMallocEndAddr)</span><br><span class="line">    &#123;</span><br><span class="line">        pCurBlock = (MemControlBlock*)pCurAddr;</span><br><span class="line">        <span class="keyword">if</span> (pCurBlock-&gt;bIsAvalible)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//判断该块可用的内存大小是否满足分配的需求</span></span><br><span class="line">            <span class="keyword">if</span> (pCurBlock-&gt;uiBlockSize - MEM_CONTROL_BLOCK_SIZE &gt;= uiMallocSize)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//该块分配空间后剩余的空间是否足够分配一个控制块，如果不能则把该块全部分配了</span></span><br><span class="line">                <span class="keyword">if</span> ((pCurBlock-&gt;uiBlockSize - MEM_CONTROL_BLOCK_SIZE) &lt;= (uiMallocSize + MEM_CONTROL_BLOCK_SIZE))</span><br><span class="line">                &#123;</span><br><span class="line">                    pCurBlock-&gt;bIsAvalible = <span class="number">0</span>;</span><br><span class="line">                    pRetAddr = pCurAddr;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="comment">//分配内存，并将剩余的空间独立成一个块</span></span><br><span class="line">                    pLeaveBlock = (MemControlBlock*)(pCurAddr + MEM_CONTROL_BLOCK_SIZE + uiMallocSize);</span><br><span class="line">                    pLeaveBlock-&gt;bIsAvalible = <span class="number">1</span>;</span><br><span class="line">                    pLeaveBlock-&gt;uiBlockSize = pCurBlock-&gt;uiBlockSize - MEM_CONTROL_BLOCK_SIZE - uiMallocSize;</span><br><span class="line">                    pLeaveBlock-&gt;uiPrevBlockSize = MEM_CONTROL_BLOCK_SIZE + uiMallocSize;</span><br><span class="line"></span><br><span class="line">                    pCurBlock-&gt;bIsAvalible = <span class="number">0</span>;</span><br><span class="line">                    pCurBlock-&gt;uiBlockSize = MEM_CONTROL_BLOCK_SIZE + uiMallocSize;</span><br><span class="line"></span><br><span class="line">                    pRetAddr = pCurAddr;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                pCurAddr += pCurBlock-&gt;uiBlockSize;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            pCurAddr += pCurBlock-&gt;uiBlockSize;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//已有的块中找不到合适的块，则通过sbrk函数增加堆顶地址</span></span><br><span class="line">    <span class="keyword">if</span> (!pRetAddr)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> uiAppendMemSize = uiMallocSize + MEM_CONTROL_BLOCK_SIZE;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">int</span> uiPrevBlockSize = pCurBlock-&gt;uiBlockSize;</span><br><span class="line">        <span class="keyword">if</span>(*((<span class="keyword">int</span>*)sbrk(uiAppendMemSize)) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        g_pMallocEndAddr = g_pMallocEndAddr + uiAppendMemSize;</span><br><span class="line">        pCurBlock = (MemControlBlock*)pCurAddr;</span><br><span class="line">        pCurBlock-&gt;bIsAvalible = <span class="number">0</span>;</span><br><span class="line">        pCurBlock-&gt;uiBlockSize = uiAppendMemSize;</span><br><span class="line">        pCurBlock-&gt;uiPrevBlockSize = uiPrevBlockSize;</span><br><span class="line"></span><br><span class="line">        pRetAddr = pCurAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> pRetAddr + MEM_CONTROL_BLOCK_SIZE;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">my_free</span><span class="params">(<span class="keyword">void</span>* pFreeAddr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pFreeAddr == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    MemControlBlock* pCurBlock = (MemControlBlock*)(pFreeAddr - MEM_CONTROL_BLOCK_SIZE);</span><br><span class="line">    MemControlBlock* pPrevBlock = (MemControlBlock*)(pFreeAddr - MEM_CONTROL_BLOCK_SIZE - pCurBlock-&gt;uiPrevBlockSize);</span><br><span class="line">    MemControlBlock* pNextBlock = (MemControlBlock*)(pFreeAddr - MEM_CONTROL_BLOCK_SIZE + pCurBlock-&gt;uiBlockSize);</span><br><span class="line">    <span class="keyword">if</span> (pCurBlock-&gt;bIsAvalible == <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        pCurBlock-&gt;bIsAvalible = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//判断前一个内存块是否可用</span></span><br><span class="line">        <span class="keyword">if</span> (pCurBlock-&gt;uiPrevBlockSize != <span class="number">0</span> &amp;&amp; pPrevBlock-&gt;bIsAvalible)</span><br><span class="line">        &#123;</span><br><span class="line">            pPrevBlock-&gt;uiBlockSize += pCurBlock-&gt;uiBlockSize;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span>((<span class="keyword">void</span>*)pNextBlock &lt; g_pMallocEndAddr)</span><br><span class="line">            &#123;</span><br><span class="line">                pNextBlock-&gt;uiPrevBlockSize = pPrevBlock-&gt;uiBlockSize;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//_MY_MALLOC_H_</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>测试程序</strong></p>
+<p>这个测试程序就是循环在堆上动态分配内存，然后释放内存，可以选择释放起始块的位置，也可以选择间隔的块数量。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;*test_malloc.c*&#x2F;</span><br><span class="line">#include &lt;unistd.h&gt;</span><br><span class="line">#include &lt;stdlib.h&gt;</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &lt;string.h&gt;</span><br><span class="line">#include &quot;my_malloc.h&quot;</span><br><span class="line"></span><br><span class="line">#define MAX_ALLOCS 1000</span><br><span class="line"></span><br><span class="line">int main(int argc, char const *argv[])</span><br><span class="line">&#123;</span><br><span class="line">    if(argc &lt; 3 || strcmp(argv[1], &quot;--help&quot;) &#x3D;&#x3D; 0)</span><br><span class="line">    &#123;</span><br><span class="line">        printf(&quot;Usage: %s num_allocs block_size [step [min [max]]]\n&quot;, argv[1]);</span><br><span class="line">        return -1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    int iNumAllocs &#x3D; atoi(argv[1]);</span><br><span class="line">    int iBlockSize &#x3D; atoi(argv[2]);</span><br><span class="line">    if(iBlockSize &gt; MAX_ALLOCS)</span><br><span class="line">    &#123;</span><br><span class="line">        printf(&quot;Out range of the max mallocs.\n&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    int iStep, iMin, iMax;</span><br><span class="line">    iStep &#x3D; (argc &gt; 3) ? atoi(argv[3]) : 1;</span><br><span class="line">    iMin &#x3D; (argc &gt; 4) ? atoi(argv[4]) : 1;</span><br><span class="line">    iMax &#x3D; (argc &gt; 5) ? atoi(argv[5]) : iNumAllocs;</span><br><span class="line"></span><br><span class="line">    printf(&quot;Initial program break: %10p\n&quot;, sbrk(0));</span><br><span class="line"></span><br><span class="line">    void* pArr[iNumAllocs];</span><br><span class="line">    memset(pArr, 0, sizeof(pArr));</span><br><span class="line">    for(int i &#x3D; 0; i &lt; iNumAllocs; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        pArr[i] &#x3D; my_malloc(iBlockSize);</span><br><span class="line">        if(pArr[i] &#x3D;&#x3D; NULL)</span><br><span class="line">        &#123;</span><br><span class="line">            printf(&quot;malloc failed.\n&quot;);</span><br><span class="line">            return -1;</span><br><span class="line">        &#125;</span><br><span class="line">        printf(&quot;After malloc, program break: %10p\n&quot;, sbrk(0));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    printf(&quot;After alloc, program break: %10p\n&quot;, sbrk(0));</span><br><span class="line"></span><br><span class="line">    for (int i &#x3D; iMin; i &lt;&#x3D; iMax; i +&#x3D; iStep)</span><br><span class="line">    &#123;</span><br><span class="line">        my_free(pArr[i - 1]);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    printf(&quot;After free, program break: %10p\n&quot;, sbrk(0));</span><br><span class="line"></span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h4><pre><code>$：./a.out 10 100 2 
+Initial program break:   0xa13000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After malloc, program break:   0xa34000
+After alloc, program break:   0xa34000
+After free, program break:   0xa34000</code></pre>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> 操作系统</a>
+              <a href="/tags/linux/" rel="tag"><i class="fa fa-tag"></i> linux</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/20/source_analysis_to_buffer_of_libevent/" rel="prev" title="Libevent源码解析-evbuffer">
+      <i class="fa fa-chevron-left"></i> Libevent源码解析-evbuffer
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/20/introduction_of_zookeeper/" rel="next" title="zookeeper介绍与环境搭建">
+      zookeeper介绍与环境搭建 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#虚拟内存"><span class="nav-number">1.</span> <span class="nav-text">虚拟内存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Linux内存的分布"><span class="nav-number">2.</span> <span class="nav-text">Linux内存的分布</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Linux内核空间"><span class="nav-number">2.1.</span> <span class="nav-text">Linux内核空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Linux用户空间"><span class="nav-number">2.2.</span> <span class="nav-text">Linux用户空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#malloc和free实现"><span class="nav-number">2.3.</span> <span class="nav-text">malloc和free实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#测试结果"><span class="nav-number">2.3.1.</span> <span class="nav-text">测试结果</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="oscarwin"
+      src="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+  <p class="site-author-name" itemprop="name">oscarwin</p>
+  <div class="site-description" itemprop="description">只要学不死，就往死里学</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/oscarwin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;oscarwin" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:ltengpeter@gmail.com" title="E-Mail → mailto:ltengpeter@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://juejin.im/user/587bb8a25c497d0058a5c7c5/posts" title="掘金 → https:&#x2F;&#x2F;juejin.im&#x2F;user&#x2F;587bb8a25c497d0058a5c7c5&#x2F;posts" rel="noopener" target="_blank"><i class="fa fa-fw fa-inbox"></i>掘金</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.douban.com/people/67048261/" title="豆瓣 → https:&#x2F;&#x2F;www.douban.com&#x2F;people&#x2F;67048261&#x2F;" rel="noopener" target="_blank"><i class="fa fa-fw fa-inbox"></i>豆瓣</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">oscarwin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: 'b948de81a53c6a6985f3',
+      clientSecret: '930a118abac14c3a7b65459df620cd9bf5927d03',
+      repo: 'oscarwin.github.io',
+      owner: 'oscarwin',
+      admin: ['oscarwin'],
+      id: 'f0ea7567513430e422f7ff028a910f88',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
