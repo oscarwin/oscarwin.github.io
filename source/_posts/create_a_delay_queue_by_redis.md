@@ -62,7 +62,7 @@ comments:  true
 <img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1gggyp2w7elj30o30duq3i.jpg" style="zoom:100%;" />
 该方案时间片存放在内存，因此轮询起来效率非常高，也可以根据不同的粒度调整时间片，因此也非常灵活。但是该方案需要自己实现持久化与高可用，以及对储存的管理，如果没有现成的轮子开发耗时会比较长。
 
-关于时间轮的具体实现可以参考：[多级时间轮定时器]([http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html](http://www.langdebuqing.com/algorithm notebook/多级时间轮定时器.html))
+关于时间轮的具体实现可以参考：[多级时间轮定时器](http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html)
 
 ### Redis的ZSET实现
 
@@ -126,7 +126,7 @@ redis的ZSET是通过跳跃表来实现的，复杂度为O(logN)，N是存放在
 ## 参考
 
 1. [有赞延迟队列设计](https://tech.youzan.com/queuing_delay/)
-2. [多级时间轮定时器]([http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html](http://www.langdebuqing.com/algorithm notebook/多级时间轮定时器.html))
+2. [多级时间轮定时器](http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html)
 3. [定时器的几种实现方式](https://www.cnkirito.moe/timer/)
 
 
