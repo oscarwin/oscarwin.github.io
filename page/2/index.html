@@ -191,7 +191,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/create_a_delay_queue_by_redis/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/design_of_cache/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -205,7 +205,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
           
-            <a href="/2019/12/20/create_a_delay_queue_by_redis/" class="post-title-link" itemprop="url">基于Redis实现延时任务</a>
+            <a href="/2019/12/20/design_of_cache/" class="post-title-link" itemprop="url">缓存设计与常见问题分析</a>
         </h1>
 
         <div class="post-meta">
@@ -240,238 +240,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。
+          <p>对于数据库的CRUD操作而言，当并发量较大时会出现读或者写的瓶颈。对于大多数场景而言，都是读多写少，因此读更容易成为数据库的瓶颈。而缓存就是为了解决读的问题而出现的。缓存的数据存储在内存中，因此性能很高。
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2019/12/20/create_a_delay_queue_by_redis/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/" class="post-title-link" itemprop="url">MySQL的事务</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>提到事务首先想到的当然是事务的四个特性：原子性、一致性、隔离性、持久性。事务的实现是由引擎层面来实现的，因此不同的存储引擎可能对事务有不同的实现方案。比如 MySQL 的 MyISAM 引擎就没有实现事务，这也是其被 InnoDB 所替代的原因之一。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%9A%84%E4%BA%8B%E5%8A%A1/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%9A%84%E9%94%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/" class="post-title-link" itemprop="url">MySQL的锁</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="MySQL-的锁，看这篇就够了"><a href="#MySQL-的锁，看这篇就够了" class="headerlink" title="MySQL 的锁，看这篇就够了"></a>MySQL 的锁，看这篇就够了</h1><p>MySQL里有非常多锁的概念，经常可以听到的有：乐观锁、悲观锁、行锁、表锁、Gap锁（间隙锁）、MDL锁（元数据锁）、意向锁、读锁、写锁、共享锁、排它锁。这么锁一听就让人头大，于是去看一些博客，有些讲乐观锁、悲观锁，有些在讲读锁、写锁，于是乐观锁和悲观锁好像理解了，读锁写锁好像也理解了，但是我任然不知道怎么用，也不知道乐观锁与读锁写锁有没有什么关系？再看了很多文章后，逐渐弄懂了它们之间的关系，于是写下这篇文章来梳理思路。能力有限，难免有误，请酌情参考。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%9A%84%E9%94%81/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/" class="post-title-link" itemprop="url">MySQL索引</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><img src="https://user-gold-cdn.xitu.io/2019/7/4/16bbd02108143dd6?w=1773&h=2738&f=png&s=640969" alt=""><br>MySQL的索引就好比一本书的目录，通过目录我们可以快速定位到感兴趣内容的章节，而通过索引可以快点查询到感兴趣的数据。数据没有了目录，我们只能从前到后一页页的查找，直到找到我们感兴趣的内容，这个过程是相当慢的。同理数据库如果没有了索引，只能一条条地找数据，当数据量非常大时，耗时就会很严重。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/MySQL%E7%B4%A2%E5%BC%95/#more" rel="contents">
+              <a class="btn" href="/2019/12/20/design_of_cache/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -571,6 +343,84 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/define_in_c/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/define_in_c/" class="post-title-link" itemprop="url">C语言里的宏定义用法</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>C/C++的宏定义，我想没有多少人现在会关心这个话题。我也不曾深入了解，但是在看C源码时，到处是各种宏定义，菜鸡我连语法都看不懂，只好来研究一下。</p>
+<p>虽然Effective C++里建议不要使用宏，而是尽量用inline来代替宏函数，用静态或者枚举来代替宏定义的值，理由是宏不够安全。不过很多源码是用C写的，里面宏定义发挥了很大的作用，有些写法很巧妙，所以宏的一些用法还是需要了解一下。</p>
+<p>宏的语法相关不多介绍，这篇文章主要描述几种我们平时可能没有用到，但是源码里经常出现的用法。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/define_in_c/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/introduction_of_zookeeper/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -647,82 +497,6 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/memory_management_of_linux/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
-      <meta itemprop="name" content="oscarwin">
-      <meta itemprop="description" content="只要学不死，就往死里学">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="oscarwin">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/12/20/memory_management_of_linux/" class="post-title-link" itemprop="url">Linux用户空间的内存管理</a>
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
-                    <span itemprop="name">技术博文</span>
-                  </a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很多页，比如每页是4k的话，4G的虚拟内存就可以分成1048576页。虚拟内存的页通过一张映射关系表与实际物理内存的页建立对应关系，如下图所示。
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/12/20/memory_management_of_linux/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-        
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/source_analysis_to_buffer_of_libevent/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -776,6 +550,82 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/12/20/source_analysis_to_buffer_of_libevent/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/memory_management_of_linux/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/memory_management_of_linux/" class="post-title-link" itemprop="url">Linux用户空间的内存管理</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="虚拟内存"><a href="#虚拟内存" class="headerlink" title="虚拟内存"></a>虚拟内存</h2><p>每个进程都有自己独立的地址空间，进程的数据存储在这个地址空间中，使得进程之间相互不影响。以32位x86的Linux系统为例，其地址空间范围是0x00000000-0xFFFFFFFF，也就是4G。这4G并不是真实的4G物理内存，设想一下，如果每个进程都占用4G的物理内存，那即使再大的内存条也抗住不这样的消耗。因此，现代操作系统都采用了虚拟内存的设计。虚拟内存和物理内存都按照一定的大小分成很多页，比如每页是4k的话，4G的虚拟内存就可以分成1048576页。虚拟内存的页通过一张映射关系表与实际物理内存的页建立对应关系，如下图所示。
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/memory_management_of_linux/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -949,11 +799,169 @@
   
   
 
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">典型服务器模式原理分析与实践</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-20T10:00:00+08:00">2019-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本文作为自己学习网络编程的总结笔记。打算分析一下主流服务器模式的优缺点，及适用场景，每种模型实现一个回射服务器。客户端用同一个版本，服务端针对每种模型编写对应的回射服务器。</p>
+<p>本文所有代码放在：<a href="https://user-gold-cdn.xitu.io/2019/3/22/169a5f43ccce37a7" target="_blank" rel="noopener">https://github.com/oscarwin/multi-echo-server</a></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/20/%E5%85%B8%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A8%A1%E5%BC%8F%E5%8E%9F%E7%90%86%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E8%B7%B5/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
+      <meta itemprop="name" content="oscarwin">
+      <meta itemprop="description" content="只要学不死，就往死里学">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="oscarwin">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/10/create_a_delay_queue_by_redis/" class="post-title-link" itemprop="url">基于Redis实现延时任务</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-10 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-10T10:00:00+08:00">2019-12-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%8D%9A%E6%96%87/" itemprop="url" rel="index">
+                    <span itemprop="name">技术博文</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。</p>
+<p>业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动触发。与之类似的场景还有：</p>
+<ul>
+<li>活动结束前 2 小时给用户推送提醒消息；</li>
+<li>优惠券过期前 2 小时给用户推送提醒消息；</li>
+<li>秒杀时，下单后 10 分钟内未付款就自动取消订单；
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/12/10/create_a_delay_queue_by_redis/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
   </div>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
   </nav>
 
 
@@ -1021,7 +1029,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">20</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1034,7 +1042,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-count">17</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
