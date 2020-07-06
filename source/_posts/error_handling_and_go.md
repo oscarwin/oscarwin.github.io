@@ -7,6 +7,10 @@ categories: 技术博文
 comments:  true
 ---
 
+![](https://tva1.sinaimg.cn/large/007S8ZIlly1gggz4woqt8j317k0u0wos.jpg)
+
+
+
 在使用 Go 语言编写应用程序时，会调用内建函数或者进行远程 RPC 调用，调用这些函数时可能会返回错误。Go 语言里没有使用 try...catch 这类机制，而是使用 error 来表示错误。以 os.Open 函数为例，当打开文件出错时会返回一次错误。
 
 ```go
@@ -445,4 +449,4 @@ if err != nil {
 > 本文链接：[https://oscarwin.github.io/2020/06/19/error_handling_and_go/](https://oscarwin.github.io/2020/06/19/error_handling_and_go/)
 > 版权声明：本博客所有文章除特别声明外，均采用[by-nc-sa 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)许可协议。转载请注明原文出处！
 
-
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg)
