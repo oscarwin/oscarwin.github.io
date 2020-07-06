@@ -1,4 +1,5 @@
 ---
+
 title: 2019年度总结
 date: 2020-01-01 10:28:43
 tags:
@@ -142,3 +143,12 @@ OKR:
 2. 出去旅游一次；
 3. 健身打卡，体重目标 130 斤；
 4. 至少带爸妈看一次电影；
+
+
+
+> 本文作者：ltengpeter@gmail.com
+> 本文链接：https://oscarwin.github.io/2020/01/01/summarize_for_2019
+> 版权声明：本博客所有文章除特别声明外，均采用[by-nc-sa 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)许可协议。转载请注明原文出处！
+
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg)

@@ -440,3 +440,9 @@ if err != nil {
 [4] [pkg/errors](https://pkg.go.dev/github.com/pkg/errors?tab=doc)
 
 
+
+> 本文作者：ltengpeter@gmail.com
+> 本文链接：[https://oscarwin.github.io/2020/06/19/error_handling_and_go/](https://oscarwin.github.io/2020/06/19/error_handling_and_go/)
+> 版权声明：本博客所有文章除特别声明外，均采用[by-nc-sa 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)许可协议。转载请注明原文出处！
+
+

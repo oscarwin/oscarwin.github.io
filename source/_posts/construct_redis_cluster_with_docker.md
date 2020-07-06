@@ -328,3 +328,9 @@ root@4355ca3260c5:/var/log/redis# cat sentinel.log
 ## 总结
 
 redis通过主从复制来实现高可用，但是发生故障时需要人工进行主从切换，效率低下。哨兵机制实现了redis主从的自动切换，提高了redis集群的可用性，提高了redis集群的故障转移效率。
+
+> 本文作者：ltengpeter@gmail.com
+> 本文链接：https://oscarwin.github.io/2019/12/20/construct_redis_cluster_with_docker
+> 版权声明：本博客所有文章除特别声明外，均采用[by-nc-sa 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)许可协议。转载请注明原文出处！
+
+![](https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg)
