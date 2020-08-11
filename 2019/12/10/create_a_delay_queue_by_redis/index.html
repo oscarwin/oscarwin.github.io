@@ -46,25 +46,30 @@
   };
 </script>
 
-  <meta name="description" content="背景介绍最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动触发。">
+  <meta name="description" content="背景介绍曾经做过一个业务需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动">
 <meta property="og:type" content="article">
 <meta property="og:title" content="基于Redis实现延时任务">
 <meta property="og:url" content="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/index.html">
 <meta property="og:site_name" content="oscarwin">
-<meta property="og:description" content="背景介绍最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动触发。">
+<meta property="og:description" content="背景介绍曾经做过一个业务需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlly1gggzajracmj31810u0wn1.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggq9q75lj4j31880lq0tf.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmpbrlxazj31mm0u040u.jpg">
 <meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggg76546toj317q05674e.jpg">
-<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1gggyp2w7elj30o30duq3i.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmmi9wfyrj31hs0memxx.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmof1n17yj31r60hodh2.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggp3v32rc6j31ts0u0mz0.jpg">
 <meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/4/12/16a11e7e3a513253?w=1704&h=522&f=png&s=98317">
 <meta property="og:image" content="https://tech.youzan.com/content/images/2016/03/delay-queue.png">
 <meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg">
 <meta property="article:published_time" content="2019-12-10T02:00:00.000Z">
-<meta property="article:modified_time" content="2020-07-06T00:54:53.863Z">
+<meta property="article:modified_time" content="2020-08-11T03:21:10.077Z">
 <meta property="article:author" content="oscarwin">
 <meta property="article:tag" content="redis">
 <meta property="article:tag" content="延时消息">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggg76546toj317q05674e.jpg">
+<meta name="twitter:image" content="https://tva1.sinaimg.cn/large/007S8ZIlly1gggzajracmj31810u0wn1.jpg">
 
 <link rel="canonical" href="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/">
 
@@ -249,14 +254,16 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>最近业务上有个需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。</p>
+        <img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gggzajracmj31810u0wn1.jpg" style="zoom:100%;" />
+
+<h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>曾经做过一个业务需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。</p>
 <p>业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动触发。与之类似的场景还有：</p>
 <ul>
 <li>活动结束前 2 小时给用户推送提醒消息；</li>
 <li>优惠券过期前 2 小时给用户推送提醒消息；</li>
 <li>秒杀时，下单后 10 分钟内未付款就自动取消订单；<a id="more"></a></li>
 </ul>
-<h2 id="业界解决方案"><a href="#业界解决方案" class="headerlink" title="业界解决方案"></a>业界解决方案</h2><p>下面我们讨论一下，对于这一类问题通常的解决方案有哪些。</p>
+<h2 id="延时任务业界解决方案"><a href="#延时任务业界解决方案" class="headerlink" title="延时任务业界解决方案"></a>延时任务业界解决方案</h2><p>下面我们讨论一下，对于这一类问题通常的解决方案有哪些。</p>
 <h3 id="扫表"><a href="#扫表" class="headerlink" title="扫表"></a>扫表</h3><p>对于延时任务，常见的方案就是扫表。扫表是指用一个定时任务，每隔一段时间扫描数据库的整张数据表，判断每个任务是否达到触发的条件。如果达到条件就执行相应的任务。</p>
 <p>扫表实现起来比较简单，而且数据本身存在 DB 里，因此也不用担心任务数据会丢失，失败的任务可以下次扫描时再重入。使用扫表这种方案时需要考虑以下几点：</p>
 <ol>
@@ -271,15 +278,46 @@
 <li>扫表的方法很笨重，每次扫描一整张表而实际需要触发的任务可能没几个，资源利用很低下；</li>
 </ul>
 <p>扫表最大的问题就是会有延迟，不能再指定的时间里触发，对于时效性要求不高，数据量不大的场景下，可以使用该方案。但是文章开始提到的业务场景对时效性要求比较高，这种方案不能满足需求。</p>
-<h3 id="延时消息队列"><a href="#延时消息队列" class="headerlink" title="延时消息队列"></a>延时消息队列</h3><p>延时消息就是消息投递到消息中间件以后，可以指定延时一段时间后才会被消费。</p>
+<h3 id="时间片轮询"><a href="#时间片轮询" class="headerlink" title="时间片轮询"></a>时间片轮询</h3><p>用环形队列做成时间片，环形队列的每个格子里维护一个链表。每个时刻有一个当前指针指向环形队列某个格子，定时器每超时一次，就把当前指针指向环形队列的下一个格子。然后处理这个格子保存的链表里的任务。如果只是这样维护，如果要做到秒级的粒度，时间长度最长一天，那么这个环形队列就会非常大。因此，需要改进了一下，当存在任务进入队列时，就用时间长度除以环形队列的长度，记为圈数。这样每次遍历到该元素时，如果圈数为 0 就直接执行该任务，如果圈数大于 0 就将该任务的圈数减 1。</p>
+<img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggq9q75lj4j31880lq0tf.jpg" style="zoom:30%;" />
+
+<p>对于时间跨度非常大的场景，如果使用这种方法会导致链表上的元素非常多，遍历链表的开销也不小，甚至在一个时间片内遍历不完。因此，又有了进一步的改进，将时间片分为不同粒度的。比如，粒度为小时的时间轮，粒度为分钟的时间轮，粒度为秒钟的时间轮。小时里的时间轮达到触发的条件后会放到分钟的时间轮里，分钟的时间轮到达触发的条件后会放到秒的时间轮里。</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmpbrlxazj31mm0u040u.jpg" alt=""><br>该方案时间片存放在内存，因此轮询起来效率非常高，也可以根据不同的粒度调整时间片，因此也非常灵活。但是该方案需要自己实现持久化与高可用，以及对储存的管理，如果没有现成的轮子开发耗时会比较长。</p>
+<p>关于时间轮的具体实现可以参考：<a href="http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html" target="_blank" rel="noopener">多级时间轮定时器</a></p>
+<h3 id="延时消息队列"><a href="#延时消息队列" class="headerlink" title="延时消息队列"></a>延时消息队列</h3><p>延时/定时消息是指生产者发送消息到消息队列后，消息队列并不将消息立即发送给消费者，而是在生产者指定的时间达到之后将消息发送给消费者。</p>
 <img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggg76546toj317q05674e.jpg" style="zoom:50%;" />
 
 <p>一些常用的消息队列组件里，RocketMQ 支持延时消息，但是 Kafka 是不支持延时消息的。开源版本的 RocketMQ 只支持特定时间长度的延迟，不支持任意时间长度的延迟，支持的时间长度延时有以下几个梯度： <code>1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h</code>。</p>
 <p>这个方案，开发成本也很小，不过需要使用的中间件能支持延时消息。而且该方案也存在一个问题是消息重新投递所选的中间件是否能够支持。</p>
-<h4 id="RocketMQ-的延时消息实现方案"><a href="#RocketMQ-的延时消息实现方案" class="headerlink" title="RocketMQ 的延时消息实现方案"></a>RocketMQ 的延时消息实现方案</h4><p>—- 待补充</p>
-<h3 id="时间片轮询"><a href="#时间片轮询" class="headerlink" title="时间片轮询"></a>时间片轮询</h3><p>用环形队列做成时间片，环形队列的每个格子里维护一个链表。每个时刻有一个当前指针指向环形队列某个格子，定时器每超时一次，就把当前指针指向下环形队列的下一个格子。然后处理这个格子保存的链表里的任务。如果只是这样维护，如果要做到秒级的粒度，时间长度最长一天，那么这个环形队列就会非常大。因此，需要改进了一下，当存在任务进入队列时，就用时间长度除以环形队列的长度，记为圈数。这样每次遍历到该元素时，将圈数减一，如果减一后为0就执行改任务，否者不执行。</p>
-<p>对于时间跨度非常大的场景，如果使用这种方法会导致链表上的元素非常多，遍历链表的开销也不小，甚至在一个时间片内遍历不完。因此，又有了进一步的改进，将时间片分为不同粒度的。比如，粒度为小时的时间轮，粒度为分钟的时间轮，粒度为秒钟的时间轮。小时里的时间轮达到触发的条件后会放到分钟的时间轮里，分钟的时间轮到达触发的条件后会放到秒的时间轮里。(图片来自网络，侵删)<br><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1gggyp2w7elj30o30duq3i.jpg" style="zoom:100%;" /><br>该方案时间片存放在内存，因此轮询起来效率非常高，也可以根据不同的粒度调整时间片，因此也非常灵活。但是该方案需要自己实现持久化与高可用，以及对储存的管理，如果没有现成的轮子开发耗时会比较长。</p>
-<p>关于时间轮的具体实现可以参考：<a href="http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html" target="_blank" rel="noopener">多级时间轮定时器</a></p>
+<p>Broker 端内置延时消息处理逻辑，核心实现的思路都是一样的：将消息进行暂存，延时的时长到达后再将消息投递到指定的 Topic 中，如下图所示：</p>
+<img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmmi9wfyrj31hs0memxx.jpg" style="zoom:50%;" />
+
+<h4 id="RocketMQ-的延时消息实现方案"><a href="#RocketMQ-的延时消息实现方案" class="headerlink" title="RocketMQ 的延时消息实现方案"></a>RocketMQ 的延时消息实现方案</h4><p>RocketMQ 只支持特定长度的延时消息，发送延时消息时需要指定延时的 Level，Broker 会将同一 Level 的消息放到同一个 Queue 中。这种在同一个 Queue 中数据就是严格有序的，因为后面进行来的消息被消费的时间也是更加靠后的。RocketMQ 延时消息的实现如下图所示：</p>
+<p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ghmof1n17yj31r60hodh2.jpg" alt=""></p>
+<ol>
+<li>Producer 投递消息后会记录到 CommitLog 中，这里会记录原本要投递的 topic 信息</li>
+<li>Producer 投递消息后如果是延时消息，就修改投递消息的 topic 为 SCHEDULE_TOPIC_XXXX，并根据延时的 level 计算应该投递到哪个 queue 中，queueId = delayTimeLevel – 1</li>
+<li>ScheduleMessageService 会起一个定时器去取 Schedule_Topic 中的消息，有多少个 queue 就起多少 TimerTask。只用判断每个 queue 中的第一个消息，因为如果第一个消息还没有到时间，那么后面的消息肯定也没有到时间</li>
+<li>消息到期后，修改消息的 Topic 信息，重新写入到 CommitLog 中</li>
+<li>投递消息到目标 topic 中</li>
+<li>消息被 consumer 消费</li>
+</ol>
+<h4 id="QMQ-的延时消息实现方案"><a href="#QMQ-的延时消息实现方案" class="headerlink" title="QMQ 的延时消息实现方案"></a>QMQ 的延时消息实现方案</h4><p><a href="https://github.com/qunarcorp/qmq" target="_blank" rel="noopener">QMQ</a> 是去哪网开源的消息队列组件，该消息队列支持秒级任意时间的延时。为什么是秒级，因为比秒级精度更高的延时基本上没有什么意义。</p>
+<h5 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h5><p>QMQ 通过时间轮的方式来实现延时消息，内存中只加载最近一段时间到期的延时消息，比如最近一个小时的消息。而更长时间的延时消息存放在磁盘中，这种存储方式节省了内存的空间。QMQ 实现延时队列的设计原理如下图所示：<br><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggp3v32rc6j31ts0u0mz0.jpg" style="zoom:50%;" /></p>
+<ul>
+<li>message log：顺序临时存放延时消息，磁盘可以选择 SSD，提升读写的性能。</li>
+<li>schedule log：将消息按照时间段进行分块存储，比如一个时间段的延时消息存放在同一个文件中。按照最大支持两年的延时消息，那么最多有 2 * 366 * 24 = 17568 个文件。</li>
+<li>time wheel in memory：加载到内存中的短期延时任务，通过时间轮轮询投递消息。</li>
+<li>dispatch log：记录时间轮中任务的投递记录。</li>
+</ul>
+<h5 id="设计细节"><a href="#设计细节" class="headerlink" title="设计细节"></a>设计细节</h5><ol>
+<li>通过消息发送 SDK 写入延时消息，消息被顺序写入磁盘，写到 message log 中，因为是顺序写所以性能比较高。message log 是临时存储，不会占用非常大的磁盘空间，因此可以使用高性能的 SSD 来提升读写的性能。</li>
+<li>用另外的进程读取 message log 中的消息，并根据延时时间的长短，将消息路由存储到不同的 schedule log 文件中。</li>
+<li>每隔一段时间就将 schedule log 中新分段的消息加载到内存的时间轮中。</li>
+<li>时间轮是按照秒级一个刻度，每隔一秒进行轮询，如果时延时间到了，就将该消息投递到一个正常的消息队列中，供消费者消费。</li>
+<li>内存时间轮中的消息如果消费到一半，服务重启了怎么办？因此还需要一个 dispatch log 来记录当前时间轮中哪些消息被消费了，用于重启后恢复数据。</li>
+</ol>
+<h3 id="死信队列"><a href="#死信队列" class="headerlink" title="死信队列"></a>死信队列</h3><p>对于 RabbitMQ 有死信队列，producer 发送消息时会给该消息设置一个 TTL，如果该消息在 TTL 内没有被消费就会被视为死信。可以利用这一点来实现延时队列。具体做法就是：向一个没有消费者的队列发送带有过期时间的消息，过期时间就是需要延迟的时间，消息过期后将死信消息转发到另一个消息队列中，这样就实现了延迟消息。</p>
 <h3 id="Redis的ZSET实现"><a href="#Redis的ZSET实现" class="headerlink" title="Redis的ZSET实现"></a>Redis的ZSET实现</h3><p>Redis实现延时任务，是通过其数据结构ZSET来实现的。ZSET会储存一个score和一个value，可以将value按照score进行排序，而SET是无序的。</p>
 <p>延时任务的实现分为以下几步来实现：</p>
 <p>(1) 将任务的执行时间作为score，要执行的任务数据作为value，存放在zset中；<br>(2) 用一个进程定时查询zset的score分数最小的元素，可以用ZRANGEBYSCORE key -inf +inf limit 0 1 withscores命令来实现;<br>(3) 如果最小的分数小于等于当前时间戳，就将该任务取出来执行，否则休眠一段时间后再查询</p>
@@ -317,6 +355,10 @@
 <li><a href="https://tech.youzan.com/queuing_delay/" target="_blank" rel="noopener">有赞延迟队列设计</a></li>
 <li><a href="http://www.langdebuqing.com/algorithm%20notebook/%E5%A4%9A%E7%BA%A7%E6%97%B6%E9%97%B4%E8%BD%AE%E5%AE%9A%E6%97%B6%E5%99%A8.html" target="_blank" rel="noopener">多级时间轮定时器</a></li>
 <li><a href="https://www.cnkirito.moe/timer/" target="_blank" rel="noopener">定时器的几种实现方式</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MzU2NjIzNDk5NQ==&mid=2247486449&idx=1&sn=489b5e17521d2b961fa21e1e5be8a082&scene=21#wechat_redirect" target="_blank" rel="noopener">任意时间延时消息原理讲解：设计与实现</a></li>
+<li><a href="https://github.com/qunarcorp/qmq" target="_blank" rel="noopener">qmq</a></li>
+<li><a href="https://github.com/apache/rocketmq/tree/master/docs/cn" target="_blank" rel="noopener">rocketmq</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1581368" target="_blank" rel="noopener">深入理解RocketMQ延迟消息</a></li>
 </ol>
 <blockquote>
 <p>本文作者：<a href="mailto:ltengpeter@gmail.com">ltengpeter@gmail.com</a><br>本文链接：<a href="https://oscarwin.github.io/2019/12/10/create_a_delay_queue_by_redis" target="_blank" rel="noopener">https://oscarwin.github.io/2019/12/10/create_a_delay_queue_by_redis</a><br>版权声明：本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">by-nc-sa 4.0</a>许可协议。转载请注明原文出处！</p>
@@ -343,8 +385,8 @@
     <div class="post-nav">
       <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/2019/12/20/time_of_linux/" rel="next" title="Linux上时间的获取和使用">
-      Linux上时间的获取和使用 <i class="fa fa-chevron-right"></i>
+    <a href="/2019/12/20/memory_management_of_linux/" rel="next" title="Linux用户空间的内存管理">
+      Linux用户空间的内存管理 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -406,7 +448,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景介绍"><span class="nav-number">1.</span> <span class="nav-text">背景介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#业界解决方案"><span class="nav-number">2.</span> <span class="nav-text">业界解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#扫表"><span class="nav-number">2.1.</span> <span class="nav-text">扫表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#延时消息队列"><span class="nav-number">2.2.</span> <span class="nav-text">延时消息队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RocketMQ-的延时消息实现方案"><span class="nav-number">2.2.1.</span> <span class="nav-text">RocketMQ 的延时消息实现方案</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#时间片轮询"><span class="nav-number">2.3.</span> <span class="nav-text">时间片轮询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis的ZSET实现"><span class="nav-number">2.4.</span> <span class="nav-text">Redis的ZSET实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#具体实现"><span class="nav-number">3.</span> <span class="nav-text">具体实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#待优化空间"><span class="nav-number">3.1.</span> <span class="nav-text">待优化空间</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#有赞延迟队列设计"><span class="nav-number">4.</span> <span class="nav-text">有赞延迟队列设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景介绍"><span class="nav-number">1.</span> <span class="nav-text">背景介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#延时任务业界解决方案"><span class="nav-number">2.</span> <span class="nav-text">延时任务业界解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#扫表"><span class="nav-number">2.1.</span> <span class="nav-text">扫表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#时间片轮询"><span class="nav-number">2.2.</span> <span class="nav-text">时间片轮询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#延时消息队列"><span class="nav-number">2.3.</span> <span class="nav-text">延时消息队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RocketMQ-的延时消息实现方案"><span class="nav-number">2.3.1.</span> <span class="nav-text">RocketMQ 的延时消息实现方案</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#QMQ-的延时消息实现方案"><span class="nav-number">2.3.2.</span> <span class="nav-text">QMQ 的延时消息实现方案</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#架构设计"><span class="nav-number">2.3.2.1.</span> <span class="nav-text">架构设计</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#设计细节"><span class="nav-number">2.3.2.2.</span> <span class="nav-text">设计细节</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#死信队列"><span class="nav-number">2.4.</span> <span class="nav-text">死信队列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis的ZSET实现"><span class="nav-number">2.5.</span> <span class="nav-text">Redis的ZSET实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#具体实现"><span class="nav-number">3.</span> <span class="nav-text">具体实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#待优化空间"><span class="nav-number">3.1.</span> <span class="nav-text">待优化空间</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#有赞延迟队列设计"><span class="nav-number">4.</span> <span class="nav-text">有赞延迟队列设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text">参考</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
