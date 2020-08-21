@@ -48,8 +48,8 @@
 
   <meta name="description" content="背景介绍曾经做过一个业务需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动">
 <meta property="og:type" content="article">
-<meta property="og:title" content="基于Redis实现延时任务">
-<meta property="og:url" content="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/index.html">
+<meta property="og:title" content="延时任务的常见解决方案">
+<meta property="og:url" content="http://yoursite.com/2020/08/21/create_a_delay_queue_by_redis/index.html">
 <meta property="og:site_name" content="oscarwin">
 <meta property="og:description" content="背景介绍曾经做过一个业务需求，背景如下：有一个养殖类游戏，通过给养的宠物喂食来升级，一次喂食后，宠物需要花4个小时吃完。现在有个新需求，可以使用道具卡来丰富玩法。道具卡有两种，一种是加速卡，一种是自动喂食卡。加速卡会使吃食的时间缩短两个小时，自动喂食卡可以在宠物吃完当前喂食的狗粮后系统帮助其自动喂食一次。 业务需求里的自动喂食就是一种典型的延时任务。延时任务是指需要在指定的未来的某个时间点自动">
 <meta property="og:locale" content="zh_CN">
@@ -63,8 +63,8 @@
 <meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/4/12/16a11e7e3a513253?w=1704&h=522&f=png&s=98317">
 <meta property="og:image" content="https://tech.youzan.com/content/images/2016/03/delay-queue.png">
 <meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg">
-<meta property="article:published_time" content="2019-12-10T02:00:00.000Z">
-<meta property="article:modified_time" content="2020-08-11T03:32:48.019Z">
+<meta property="article:published_time" content="2020-08-21T02:00:00.000Z">
+<meta property="article:modified_time" content="2020-08-21T02:00:52.363Z">
 <meta property="article:author" content="oscarwin">
 <meta property="article:tag" content="redis">
 <meta property="article:tag" content="延时消息">
@@ -74,7 +74,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://tva1.sinaimg.cn/large/007S8ZIlly1gggzajracmj31810u0wn1.jpg">
 
-<link rel="canonical" href="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/">
+<link rel="canonical" href="http://yoursite.com/2020/08/21/create_a_delay_queue_by_redis/">
 
 
 <script id="page-configurations">
@@ -86,7 +86,7 @@
   };
 </script>
 
-  <title>基于Redis实现延时任务 | oscarwin</title>
+  <title>延时任务的常见解决方案 | oscarwin</title>
   
 
 
@@ -209,7 +209,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/10/create_a_delay_queue_by_redis/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/21/create_a_delay_queue_by_redis/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://tva1.sinaimg.cn/large/006tNbRwgy1gbddlc4in0j30k00k03zv.jpg">
@@ -222,7 +222,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          基于Redis实现延时任务
+          延时任务的常见解决方案
         </h1>
 
         <div class="post-meta">
@@ -232,7 +232,7 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2019-12-10 10:00:00" itemprop="dateCreated datePublished" datetime="2019-12-10T10:00:00+08:00">2019-12-10</time>
+              <time title="创建时间：2020-08-21 10:00:00" itemprop="dateCreated datePublished" datetime="2020-08-21T10:00:00+08:00">2020-08-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -321,7 +321,7 @@
 <li>内存时间轮中的消息如果消费到一半，服务重启了怎么办？因此还需要一个 dispatch log 来记录当前时间轮中哪些消息被消费了，用于重启后恢复数据。</li>
 </ol>
 <h3 id="死信队列"><a href="#死信队列" class="headerlink" title="死信队列"></a>死信队列</h3><p>对于 RabbitMQ 有死信队列，producer 发送消息时会给该消息设置一个 TTL，如果该消息在 TTL 内没有被消费就会被视为死信。可以利用这一点来实现延时队列。具体做法就是：向一个没有消费者的队列发送带有过期时间的消息，过期时间就是需要延迟的时间，消息过期后将死信消息转发到另一个消息队列中，这样就实现了延迟消息。</p>
-<h3 id="Redis的ZSET实现"><a href="#Redis的ZSET实现" class="headerlink" title="Redis的ZSET实现"></a>Redis的ZSET实现</h3><p>Redis实现延时任务，是通过其数据结构ZSET来实现的。ZSET会储存一个score和一个value，可以将value按照score进行排序，而SET是无序的。</p>
+<h3 id="Redis的ZSET实现"><a href="#Redis的ZSET实现" class="headerlink" title="Redis的ZSET实现"></a>Redis的ZSET实现</h3><p>如果公司正在使用的消息队列不支持延时消息，使用 Redis 也可以很快速搭建一套延时任务系统。Redis实现延时任务，是通过其数据结构ZSET来实现的。ZSET会储存一个score和一个value，可以将value按照score进行排序，而SET是无序的。</p>
 <p>延时任务的实现分为以下几步来实现：</p>
 <p>(1) 将任务的执行时间作为score，要执行的任务数据作为value，存放在zset中；<br>(2) 用一个进程定时查询zset的score分数最小的元素，可以用ZRANGEBYSCORE key -inf +inf limit 0 1 withscores命令来实现;<br>(3) 如果最小的分数小于等于当前时间戳，就将该任务取出来执行，否则休眠一段时间后再查询</p>
 <p>redis的ZSET是通过跳跃表来实现的，复杂度为O(logN)，N是存放在ZSET中元素的个数。用redis来实现可以依赖于redis自身的持久化来实现持久化，redis的集群来支持高并发和高可用。因此开发成本很小，可以做到很实时。</p>
@@ -364,7 +364,7 @@
 <li><a href="https://cloud.tencent.com/developer/article/1581368" target="_blank" rel="noopener">深入理解RocketMQ延迟消息</a></li>
 </ol>
 <blockquote>
-<p>本文作者：<a href="mailto:ltengpeter@gmail.com">ltengpeter@gmail.com</a><br>本文链接：<a href="https://oscarwin.github.io/2019/12/10/create_a_delay_queue_by_redis" target="_blank" rel="noopener">https://oscarwin.github.io/2019/12/10/create_a_delay_queue_by_redis</a><br>版权声明：本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">by-nc-sa 4.0</a>许可协议。转载请注明原文出处！</p>
+<p>本文作者：<a href="mailto:ltengpeter@gmail.com">ltengpeter@gmail.com</a><br>原文链接：<a href="https://oscarwin.github.io/2020/08/21/create_a_delay_queue_by_redis" target="_blank" rel="noopener">https://oscarwin.github.io/2020/08/21/create_a_delay_queue_by_redis</a><br>版权声明：本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">by-nc-sa 4.0</a>许可协议。转载请注明原文出处！</p>
 </blockquote>
 <p><img src="https://tva1.sinaimg.cn/large/007S8ZIlgy1ggfz9k5x0nj31mo0jatai.jpg" alt=""></p>
 
@@ -389,11 +389,11 @@
 
         
     <div class="post-nav">
-      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/2019/12/20/source_anlysis_to_event_of_libevent/" rel="next" title="Libevent源码解析-事件循环">
-      Libevent源码解析-事件循环 <i class="fa fa-chevron-right"></i>
+    <a href="/2020/06/19/error_handling_and_go/" rel="prev" title="Go 语言中的错误处理">
+      <i class="fa fa-chevron-left"></i> Go 语言中的错误处理
     </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -596,7 +596,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo: 'oscarwin.github.io',
       owner: 'oscarwin',
       admin: ['oscarwin'],
-      id: 'd3e250e9c0eae238dc59a7a85a8a12a5',
+      id: '0fa411cd8018ed1a2fc79d72314abef9',
         language: 'zh-CN',
       distractionFreeMode: true
     });
